@@ -1,0 +1,219 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  FolderGit2,
+  Flame,
+  AlertTriangle,
+  CheckCircle,
+  Activity,
+  Gauge,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  FileText,
+  Cpu
+} from 'lucide-react';
+import { useDashboard } from '../context/DashboardContext';
+import PageContainer from '../components/layout/PageContainer';
+import KPICard from '../components/dashboard/KPICard';
+import USPBanner from '../components/dashboard/USPBanner';
+import RiskOverview from '../components/dashboard/RiskOverview';
+import CostTimeRiskCards from '../components/dashboard/CostTimeRiskCards';
+import RiskTrend from '../components/dashboard/RiskTrend';
+import ProjectFilters from '../components/projects/ProjectFilters';
+import ProjectTable from '../components/projects/ProjectTable';
+import AlertCard from '../components/alerts/AlertCard';
+import { RealtimePredictionModal } from '../components/common/RealtimePredictionModal';
+
+export const Dashboard = () => {
+  const navigate = useNavigate();
+  const {
+    stats,
+    filteredProjects,
+    setSelectedRiskFilter,
+    alerts,
+    updateAlertStatus,
+    isPredictionModalOpen,
+    setIsPredictionModalOpen
+  } = useDashboard();
+
+  return (
+    <PageContainer
+      title="Project Intelligence Dashboard"
+      subtitle="AI-powered infrastructure project risk monitoring and early warning."
+      action={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsPredictionModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-gov-700 hover:bg-gov-800 rounded-lg shadow-sm transition"
+          >
+            <Cpu className="w-3.5 h-3.5 text-sky-300" />
+            <span>Run AI Risk Assessment</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/what-if')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-gov-700" />
+            <span>Simulate What-If</span>
+          </button>
+        </div>
+      }
+    >
+      {/* Top KPI Cards Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <KPICard
+          title="Total Projects"
+          value={stats.totalProjects.toLocaleString()}
+          supportingText="Active Monitored Pipeline"
+          icon={FolderGit2}
+          onClick={() => {
+            setSelectedRiskFilter('ALL');
+            navigate('/projects');
+          }}
+        />
+
+        <KPICard
+          title="Critical Projects"
+          value={stats.criticalProjects.toLocaleString()}
+          supportingText="Requires Immediate Action"
+          icon={Flame}
+          trend="+2.4%"
+          trendType="up"
+          riskLevel="CRITICAL"
+          onClick={() => {
+            setSelectedRiskFilter('CRITICAL');
+            navigate('/high-risk');
+          }}
+        />
+
+        <KPICard
+          title="High Risk"
+          value={stats.highRisk.toLocaleString()}
+          supportingText="Elevated Delay/Cost Drift"
+          icon={AlertTriangle}
+          trend="+1.1%"
+          trendType="up"
+          riskLevel="HIGH"
+          onClick={() => {
+            setSelectedRiskFilter('HIGH');
+            navigate('/projects');
+          }}
+        />
+
+        <KPICard
+          title="Medium Risk"
+          value={stats.mediumRisk.toLocaleString()}
+          supportingText="Watchlist & Milestone Audit"
+          icon={Activity}
+          trend="-0.5%"
+          trendType="neutral"
+          riskLevel="MEDIUM"
+          onClick={() => {
+            setSelectedRiskFilter('MEDIUM');
+            navigate('/projects');
+          }}
+        />
+
+        <KPICard
+          title="Low Risk"
+          value={stats.lowRisk.toLocaleString()}
+          supportingText="On-Schedule Execution"
+          icon={CheckCircle}
+          trend="-3.0%"
+          trendType="down"
+          riskLevel="LOW"
+          onClick={() => {
+            setSelectedRiskFilter('LOW');
+            navigate('/projects');
+          }}
+        />
+
+        <KPICard
+          title="Avg Risk Score"
+          value={Number(stats.averageRiskScore).toFixed(1)}
+          supportingText="National Hazard Baseline"
+          icon={Gauge}
+          trend="0 - 100 Index"
+          trendType="neutral"
+          onClick={() => navigate('/risk-analytics')}
+        />
+      </div>
+
+      {/* Major USP Highlight Section: "From Monitoring to Prediction" */}
+      <USPBanner />
+
+      {/* Section 2: Overall Project Risk & Cost/Time Risk Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-5 flex flex-col">
+          <RiskOverview />
+        </div>
+        <div className="lg:col-span-7 flex flex-col justify-between">
+          <CostTimeRiskCards />
+        </div>
+      </div>
+
+      {/* Section 3: Risk Score Trend */}
+      <RiskTrend />
+
+      {/* Section 4: Early Warning Radar Cards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-gov-700" />
+              Active Early Warning Radar
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              High-priority alerts generated by machine learning anomaly detection
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/alerts')}
+            className="text-xs font-bold text-gov-700 hover:text-gov-800 inline-flex items-center gap-1"
+          >
+            <span>View All {alerts.length} Alerts</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {alerts.slice(0, 3).map((alert) => (
+            <AlertCard
+              key={alert.alertId}
+              alert={alert}
+              onStatusChange={updateAlertStatus}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Section 5: High-Risk Projects & Master Table */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-slate-900">High-Risk Infrastructure Projects</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time ranked asset assessment sorted by predicted overall risk index
+          </p>
+        </div>
+
+        <ProjectFilters resultsCount={filteredProjects.length} />
+
+        <ProjectTable
+          projectsList={filteredProjects}
+          pageSize={10}
+          enablePagination={true}
+        />
+      </div>
+
+      {/* Real-Time Prediction Modal */}
+      <RealtimePredictionModal
+        isOpen={isPredictionModalOpen}
+        onClose={() => setIsPredictionModalOpen(false)}
+      />
+    </PageContainer>
+  );
+};
+
+export default Dashboard;

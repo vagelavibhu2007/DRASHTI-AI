@@ -1,0 +1,367 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  MapPin,
+  Calendar,
+  DollarSign,
+  Clock,
+  Gauge,
+  Sliders,
+  Sparkles,
+  ArrowLeft,
+  AlertTriangle,
+  Cpu,
+  Info
+} from 'lucide-react';
+import { useDashboard } from '../context/DashboardContext';
+import { api } from '../services/api';
+import PageContainer from '../components/layout/PageContainer';
+import { RiskBadge } from '../components/common/RiskBadge';
+import { RiskGauge } from '../components/common/RiskGauge';
+import StatusBadge from '../components/common/StatusBadge';
+import ShapContributionBars from '../components/projects/ShapContributionBars';
+import { formatCurrency, formatPercent } from '../utils/riskUtils';
+import AlertCard from '../components/alerts/AlertCard';
+
+export const ProjectDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { projects, alerts, updateAlertStatus } = useDashboard();
+
+  const [projectData, setProjectData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDetail = async () => {
+      setIsLoading(true);
+      try {
+        const res = await api.getProjectById(id);
+        if (res.success && res.data) {
+          setProjectData(res.data);
+        } else {
+          const fallback = projects.find((p) => String(p.projectId) === String(id)) || projects[0];
+          setProjectData(fallback);
+        }
+      } catch (err) {
+        const fallback = projects.find((p) => String(p.projectId) === String(id)) || projects[0];
+        setProjectData(fallback);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDetail();
+  }, [id, projects]);
+
+  if (isLoading || !projectData) {
+    return (
+      <PageContainer title="Loading Project Intelligence...">
+        <div className="p-12 text-center text-slate-500 font-medium">
+          <Cpu className="w-8 h-8 animate-spin mx-auto text-gov-700 mb-2" />
+          <p>AI model is analyzing project data...</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const project = projectData;
+  const relatedAlerts = alerts.filter(
+    (a) => String(a.projectId) === String(project.projectId) || a.projectName.toLowerCase().includes(project.projectName.toLowerCase().slice(0, 10))
+  );
+
+  return (
+    <PageContainer
+      breadcrumbs={[
+        { label: 'Projects Directory', to: '/projects' },
+        { label: `Project #${project.projectId}` }
+      ]}
+      title={project.projectName}
+      subtitle={`Project ID: #${project.projectId} • ${project.ministry} • ${project.sector} • ${project.state} (${project.district || 'Zone'})`}
+      action={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/projects')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+            <span>Back to Projects</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/what-if', { state: { project } })}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-gov-700 hover:bg-gov-800 rounded-lg shadow-sm transition"
+          >
+            <Sliders className="w-3.5 h-3.5 text-sky-300" />
+            <span>Simulate What-If</span>
+          </button>
+        </div>
+      }
+    >
+      {/* SECTION 1: AI-ASSISTED RISK ASSESSMENT HERO (Gauge + 3 Cards) */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-card space-y-6">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-gov-700" />
+              AI-Assisted Risk Assessment
+            </span>
+            <span className="text-xs text-slate-400">•</span>
+            <StatusBadge status={project.status} />
+          </div>
+          <RiskBadge level={project.riskLevel} score={project.overallRisk} size="md" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          {/* Circular Gauge */}
+          <div className="lg:col-span-4 flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <RiskGauge score={project.overallRisk} size={180} strokeWidth={15} />
+            <div className="text-center mt-3">
+              <span className="text-xs font-bold text-slate-700 block">Overall Risk Score</span>
+              <span className="text-[11px] text-slate-500">Hazard Index (0 - 100 Scale)</span>
+            </div>
+          </div>
+
+          {/* Three Risk Probability Cards */}
+          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Card 1: Cost Overrun Risk */}
+            <div className="p-5 rounded-xl border border-red-200 bg-red-50/50 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold text-red-700 uppercase tracking-wider mb-2">
+                  <span>Cost Overrun Risk</span>
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div className="font-mono text-3xl font-extrabold text-red-600">
+                  {formatPercent(project.costRisk)}
+                </div>
+                <span className="text-[11px] text-red-800 font-medium block mt-1">
+                  Predicted Probability
+                </span>
+                <span className="text-[10px] text-slate-500 block font-mono mt-0.5">
+                  Classification: {project.predictedCostOverrun || project.costRisk >= 40 ? 'Overrun Likely (≥40%)' : 'Contained'}
+                </span>
+              </div>
+              <div className="w-full bg-red-200/60 h-2 rounded-full overflow-hidden mt-4">
+                <div className="bg-red-600 h-full rounded-full" style={{ width: `${project.costRisk}%` }} />
+              </div>
+            </div>
+
+            {/* Card 2: Time Overrun Risk */}
+            <div className="p-5 rounded-xl border border-orange-200 bg-orange-50/50 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold text-orange-700 uppercase tracking-wider mb-2">
+                  <span>Time Overrun Risk</span>
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="font-mono text-3xl font-extrabold text-orange-600">
+                  {formatPercent(project.timeRisk)}
+                </div>
+                <span className="text-[11px] text-orange-800 font-medium block mt-1">
+                  Predicted Probability
+                </span>
+                <span className="text-[10px] text-slate-500 block font-mono mt-0.5">
+                  Estimated Delay: {project.predictedDelayDays ? `+${project.predictedDelayDays} days` : 'On schedule'}
+                </span>
+              </div>
+              <div className="w-full bg-orange-200/60 h-2 rounded-full overflow-hidden mt-4">
+                <div className="bg-orange-600 h-full rounded-full" style={{ width: `${project.timeRisk}%` }} />
+              </div>
+            </div>
+
+            {/* Card 3: Overall Risk */}
+            <div className="p-5 rounded-xl border border-slate-300 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  <span>Composite Hazard</span>
+                  <Gauge className="w-4 h-4 text-gov-700" />
+                </div>
+                <div className="font-mono text-3xl font-extrabold text-slate-900">
+                  {Number(project.overallRisk).toFixed(1)}
+                </div>
+                <span className="text-[11px] text-slate-600 font-medium block mt-1">
+                  Ensemble Risk Score
+                </span>
+                <span className="text-[10px] text-slate-500 block font-mono mt-0.5">
+                  Formula: (Cost + Time) / 2
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-4">
+                <div className="bg-gov-700 h-full rounded-full" style={{ width: `${project.overallRisk}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Regression & Cost Forecast Block */}
+        {project.predictedCostOverrunCr && (
+          <div className="p-4 bg-gradient-to-r from-slate-900 to-gov-950 text-white rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 border border-slate-800">
+            <div>
+              <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider block">
+                Predicted Cost Overrun (ML Regressor)
+              </span>
+              <span className="font-mono text-xl font-bold text-red-400 mt-0.5 block">
+                {formatCurrency(project.predictedCostOverrunCr)}
+              </span>
+              <span className="text-[10px] text-slate-400">log1p inverted with expm1()</span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider block">
+                Estimated Revised Project Cost
+              </span>
+              <span className="font-mono text-xl font-bold text-white mt-0.5 block">
+                {formatCurrency(project.estimatedRevisedCostCr || (project.originalCost + project.predictedCostOverrunCr))}
+              </span>
+              <span className="text-[10px] text-slate-400">Original + Overrun</span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider block">
+                Predicted Schedule Slippage
+              </span>
+              <span className="font-mono text-xl font-bold text-orange-400 mt-0.5 block">
+                {project.predictedDelayDays ? `+${project.predictedDelayDays} Days` : '+18 Months'}
+              </span>
+              <span className="text-[10px] text-slate-400">Estimated delay</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 2: PROJECT PERFORMANCE */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-card space-y-6">
+        <div>
+          <h3 className="text-base font-bold text-slate-900">Project Performance & Milestones</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Financial allocation vs actual ground physical milestone achievement
+          </p>
+        </div>
+
+        {/* 6 Metric KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 block">Original Cost</span>
+            <span className="text-lg font-bold font-mono text-slate-900 mt-1 block">
+              {formatCurrency(project.originalCost)}
+            </span>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 block">Cumulative Expenditure</span>
+            <span className="text-lg font-bold font-mono text-slate-900 mt-1 block">
+              {formatCurrency(project.cumulativeExpenditure)}
+            </span>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 block">Physical Progress</span>
+            <span className="text-lg font-bold font-mono text-gov-700 mt-1 block">
+              {formatPercent(project.physicalProgress)}
+            </span>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 block">Expenditure %</span>
+            <span
+              className={`text-lg font-bold font-mono mt-1 block ${
+                project.expenditurePercentage > project.physicalProgress + 20
+                  ? 'text-red-600'
+                  : 'text-slate-900'
+              }`}
+            >
+              {formatPercent(project.expenditurePercentage)}
+            </span>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 block">Expected Completion</span>
+            <span className="text-sm font-bold font-mono text-slate-800 mt-1 block truncate">
+              {project.expectedCompletion}
+            </span>
+            <span className="text-[10px] text-red-600 font-semibold">
+              +{project.delayMonths || 18} mos delay
+            </span>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-semibold text-slate-500 block">Project Status</span>
+            <div className="mt-1">
+              <StatusBadge status={project.status} />
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-1 truncate">
+              {project.contractor}
+            </span>
+          </div>
+        </div>
+
+        {/* Progress Comparison Bars */}
+        <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs font-semibold">
+              <span className="text-slate-700">Physical Progress (Field Verified)</span>
+              <span className="font-mono text-gov-800">{formatPercent(project.physicalProgress)}</span>
+            </div>
+            <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+              <div
+                className="bg-gov-600 h-full rounded-full transition-all duration-700"
+                style={{ width: `${project.physicalProgress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs font-semibold">
+              <span className="text-slate-700">Financial Expenditure (Fund Drawdowns)</span>
+              <span className="font-mono text-slate-900">{formatPercent(project.expenditurePercentage)}</span>
+            </div>
+            <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  project.expenditurePercentage > project.physicalProgress + 20
+                    ? 'bg-red-500'
+                    : 'bg-gov-500'
+                }`}
+                style={{ width: `${Math.min(100, project.expenditurePercentage)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 3: "WHY IS THIS PROJECT RISKY?" (SHAP Explainable AI) */}
+      <ShapContributionBars
+        factors={project.shapFactors}
+        projectName={project.projectName}
+      />
+
+      {/* SECTION 4: ASSOCIATED EARLY WARNING ALERTS */}
+      {relatedAlerts.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            Active Early Warnings for this Project ({relatedAlerts.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {relatedAlerts.map((alert) => (
+              <AlertCard
+                key={alert.alertId}
+                alert={alert}
+                onStatusChange={updateAlertStatus}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Official Disclaimer */}
+      <div className="p-3 bg-slate-100 rounded-lg border border-slate-200 text-xs text-slate-500 flex items-center gap-2">
+        <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+        <span>
+          <strong>AI Disclaimer:</strong> AI predictions are model-based estimates intended to support proactive project monitoring and decision-making.
+        </span>
+      </div>
+    </PageContainer>
+  );
+};
+
+export default ProjectDetails;
