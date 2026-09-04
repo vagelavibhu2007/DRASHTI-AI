@@ -1,0 +1,31 @@
+{
+  "model_type": "XGBClassifier (Extreme Gradient Boosting)",
+  "version": "4.2.0",
+  "threshold": 0.4,
+  "features": [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost",
+    "Ministry",
+    "Sector",
+    "State"
+  ],
+  "numeric_features": [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost"
+  ],
+  "categorical_features": [
+    "Ministry",
+    "Sector",
+    "State"
+  ],
+  "roc_auc": 0.8528,
+  "accuracy_at_threshold_0_4": "81.89%",
+  "precision": "66.67%",
+  "recall": "67.29%",
+  "f1_score": "66.98%",
+  "status": "Production Calibrated"
+}

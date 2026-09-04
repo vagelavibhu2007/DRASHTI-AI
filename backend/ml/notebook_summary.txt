@@ -1,0 +1,2333 @@
+
+================ CELL 0 (code) ================
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+================ CELL 1 (code) ================
+df = pd.read_csv("/content/drive/MyDrive/Datasets/SIH/ML_READY.csv")
+
+================ CELL 2 (code) ================
+df.head()
+
+================ CELL 3 (code) ================
+# Time Overrun Regression Dataset
+
+reg_df = df.copy()
+
+print("Original Shape:", reg_df.shape)
+
+================ CELL 4 (code) ================
+print("Time Overrun Days - Missing Values:")
+print(reg_df["Time_Overrun_Days"].isnull().sum())
+
+print("\nTime Overrun Days - Valid Values:")
+print(reg_df["Time_Overrun_Days"].notnull().sum())
+
+print("\nBasic Statistics:")
+print(reg_df["Time_Overrun_Days"].describe())
+
+================ CELL 5 (code) ================
+
+negative_overrun = reg_df[
+    reg_df["Time_Overrun_Days"] < 0
+]
+
+print("Negative Time Overrun Records:",
+      len(negative_overrun))
+
+print("\nNegative values:")
+print(
+    negative_overrun[
+        [
+            "Project_ID",
+            "Project_Name",
+            "Target_DOC",
+            "Revised_DOC",
+            "Time_Overrun_Days",
+            "Time_Overrun_Months"
+        ]
+    ].head(20)
+)
+
+================ CELL 6 (code) ================
+# Remove negative Time Overrun values
+reg_df_clean = reg_df[
+    reg_df["Time_Overrun_Days"] >= 0
+].copy()
+
+print("Original rows :", len(reg_df))
+print("Clean rows    :", len(reg_df_clean))
+print("Removed rows  :", len(reg_df) - len(reg_df_clean))
+
+================ CELL 7 (code) ================
+print(reg_df_clean["Time_Overrun_Days"].describe())
+
+================ CELL 8 (code) ================
+# Remove negative Time Overrun values
+reg_df_clean = reg_df[
+    reg_df["Time_Overrun_Days"] >= 0
+].copy()
+
+# Basic information
+print("Original rows :", len(reg_df))
+print("Clean rows    :", len(reg_df_clean))
+print("Removed rows  :", len(reg_df) - len(reg_df_clean))
+
+# Statistics
+print("\nTime Overrun Statistics:")
+print(reg_df_clean["Time_Overrun_Days"].describe())
+
+
+================ CELL 9 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(
+    reg_df_clean["Time_Overrun_Days"],
+    bins=30
+)
+
+plt.xlabel("Time Overrun (Days)")
+plt.ylabel("Number of Projects")
+plt.title("Distribution of Time Overrun")
+
+plt.grid(axis="y", alpha=0.3)
+
+plt.show()
+
+================ CELL 10 (code) ================
+plt.figure(figsize=(10, 4))
+
+plt.boxplot(
+    reg_df_clean["Time_Overrun_Days"].dropna(),
+    vert=False
+)
+
+plt.xlabel("Time Overrun (Days)")
+plt.title("Boxplot of Time Overrun")
+
+plt.grid(axis="x", alpha=0.3)
+
+plt.show()
+
+================ CELL 11 (code) ================
+Q1 = reg_df_clean["Time_Overrun_Days"].quantile(0.25)
+Q3 = reg_df_clean["Time_Overrun_Days"].quantile(0.75)
+
+IQR = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+print("Q1:", Q1)
+print("Q3:", Q3)
+print("IQR:", IQR)
+
+print("\nLower Bound:", lower_bound)
+print("Upper Bound:", upper_bound)
+
+outliers = reg_df_clean[
+    (reg_df_clean["Time_Overrun_Days"] < lower_bound) |
+    (reg_df_clean["Time_Overrun_Days"] > upper_bound)
+]
+
+print("\nNumber of Outliers:", len(outliers))
+
+================ CELL 12 (code) ================
+# Create log-transformed target
+
+reg_df_clean["Log_Time_Overrun_Days"] = np.log1p(
+    reg_df_clean["Time_Overrun_Days"]
+)
+
+print(reg_df_clean[
+    [
+        "Time_Overrun_Days",
+        "Log_Time_Overrun_Days"
+    ]
+].head(10))
+
+================ CELL 13 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(reg_df_clean["Log_Time_Overrun_Days"],bins=30)
+
+plt.xlabel("Log(Time Overrun Days + 1)")
+plt.ylabel("Number of Projects")
+plt.title("Distribution of Log-Transformed Time Overrun")
+
+plt.grid(axis="y", alpha=0.3)
+
+plt.show()
+
+================ CELL 14 (code) ================
+reg_features = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost",
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+X_reg = reg_df_clean[reg_features].copy()
+
+print("Features selected:")
+print(X_reg.columns.tolist())
+
+print("\nShape of X:", X_reg.shape)
+
+================ CELL 15 (code) ================
+# Check missing values in regression features
+
+print("Missing values in each feature:\n")
+print(X_reg.isnull().sum())
+
+================ CELL 16 (code) ================
+print("\nMissing percentage:\n")
+print((X_reg.isnull().sum() / len(X_reg) * 100).round(2))
+
+================ CELL 17 (code) ================
+# Fill missing Physical Progress values with median
+
+X_reg_clean = X_reg.copy()
+
+median_physical_progress = X_reg_clean["Physical_Progress_Pct"].median()
+
+X_reg_clean["Physical_Progress_Pct"] = (X_reg_clean["Physical_Progress_Pct"].fillna(median_physical_progress))
+
+print("Median Physical Progress:",
+      median_physical_progress)
+
+print("\nRemaining missing values:")
+print(X_reg_clean.isnull().sum())
+
+================ CELL 18 (code) ================
+# Create regression target
+
+y_reg = reg_df_clean["Log_Time_Overrun_Days"].copy()
+
+print("Target column: Log_Time_Overrun_Days")
+print("Target shape:", y_reg.shape)
+
+print("\nFirst 10 target values:")
+print(y_reg.head(10))
+
+================ CELL 19 (code) ================
+from sklearn.model_selection import train_test_split
+
+X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(X_reg_clean,y_reg,test_size=0.20,random_state=42)
+
+print("Training Features :", X_train_reg.shape)
+print("Testing Features  :", X_test_reg.shape)
+
+print("Training Target   :", y_train_reg.shape)
+print("Testing Target    :", y_test_reg.shape)
+
+================ CELL 20 (code) ================
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+================ CELL 21 (code) ================
+# Numerical features
+
+numeric_features_reg = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost"
+]
+
+# Categorical features
+
+categorical_features_reg = [
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+print("Numerical Features:")
+print(numeric_features_reg)
+
+print("\nCategorical Features:")
+print(categorical_features_reg)
+
+================ CELL 22 (code) ================
+# Numerical preprocessing
+numeric_transformer_reg = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="median")
+        )
+    ]
+)
+
+
+# Categorical preprocessing
+categorical_transformer_reg = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="most_frequent")
+        ),
+        (
+            "onehot",
+            OneHotEncoder(
+                handle_unknown="ignore"
+            )
+        )
+    ]
+)
+
+================ CELL 23 (code) ================
+preprocessor_reg = ColumnTransformer(
+    transformers=[
+        (
+            "numeric",
+            numeric_transformer_reg,
+            numeric_features_reg
+        ),
+        (
+            "categorical",
+            categorical_transformer_reg,
+            categorical_features_reg
+        )
+    ]
+)
+
+print("Preprocessing pipeline created successfully!")
+
+================ CELL 24 (code) ================
+from sklearn.ensemble import RandomForestRegressor
+
+================ CELL 25 (code) ================
+rf_reg = RandomForestRegressor(
+    n_estimators=300,
+    max_depth=12,
+    min_samples_split=5,
+    min_samples_leaf=2,
+    random_state=42,
+    n_jobs=-1
+)
+
+print("Random Forest Regressor created successfully!")
+
+================ CELL 26 (code) ================
+regression_model = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor_reg
+        ),
+        (
+            "regressor",
+            rf_reg
+        )
+    ]
+)
+
+print("Complete Regression Pipeline created!")
+
+================ CELL 27 (code) ================
+regression_model.fit(X_train_reg,y_train_reg)
+
+print("Time Overrun Regression Model trained successfully!")
+
+================ CELL 28 (code) ================
+# Predict Time Overrun on test data
+
+y_pred_log = regression_model.predict(X_test_reg)
+
+print("First 10 Predicted Log Values:")
+print(y_pred_log[:10])
+
+================ CELL 29 (code) ================
+# Convert predicted log values back to actual days
+
+y_pred_days = np.expm1(y_pred_log)
+
+print("First 10 Predicted Time Overrun Days:")
+print(np.round(y_pred_days[:10], 2))
+
+================ CELL 30 (code) ================
+# Compare actual and predicted Time Overrun
+
+comparison_df = pd.DataFrame({
+    "Actual_Time_Overrun_Days": y_test_reg.values,
+    "Predicted_Time_Overrun_Days": y_pred_days
+})
+
+comparison_df["Difference_Days"] = (
+    comparison_df["Actual_Time_Overrun_Days"]
+    - comparison_df["Predicted_Time_Overrun_Days"]
+)
+
+comparison_df.head(10)
+
+================ CELL 31 (code) ================
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+
+plt.scatter(
+    comparison_df["Actual_Time_Overrun_Days"],
+    comparison_df["Predicted_Time_Overrun_Days"],
+    alpha=0.6
+)
+
+# Perfect prediction line
+max_value = max(
+    comparison_df["Actual_Time_Overrun_Days"].max(),
+    comparison_df["Predicted_Time_Overrun_Days"].max()
+)
+
+plt.plot(
+    [0, max_value],
+    [0, max_value],
+    linestyle="--",
+    linewidth=2,
+    label="Perfect Prediction"
+)
+
+plt.xlabel("Actual Time Overrun (Days)")
+plt.ylabel("Predicted Time Overrun (Days)")
+
+plt.title(
+    "Actual vs Predicted Time Overrun"
+)
+
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.show()
+
+================ CELL 32 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(
+    comparison_df["Difference_Days"],
+    bins=30
+)
+
+plt.axvline(
+    0,
+    linestyle="--",
+    linewidth=2
+)
+
+plt.xlabel("Prediction Error (Days)")
+plt.ylabel("Number of Projects")
+
+plt.title(
+    "Distribution of Time Overrun Prediction Errors"
+)
+
+plt.grid(axis="y", alpha=0.3)
+
+plt.show()
+
+================ CELL 33 (code) ================
+# Convert actual log target back to actual days
+
+y_test_days = np.expm1(y_test_reg)
+
+comparison_df = pd.DataFrame({
+    "Actual_Time_Overrun_Days": y_test_days,
+    "Predicted_Time_Overrun_Days": y_pred_days
+})
+
+comparison_df["Difference_Days"] = (
+    comparison_df["Actual_Time_Overrun_Days"]
+    - comparison_df["Predicted_Time_Overrun_Days"]
+)
+
+comparison_df.head(10)
+
+================ CELL 34 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.scatter(
+    comparison_df["Actual_Time_Overrun_Days"],
+    comparison_df["Predicted_Time_Overrun_Days"],
+    alpha=0.6
+)
+
+# Perfect prediction line
+max_value = max(
+    comparison_df["Actual_Time_Overrun_Days"].max(),
+    comparison_df["Predicted_Time_Overrun_Days"].max()
+)
+
+plt.plot(
+    [0, max_value],
+    [0, max_value],
+    linestyle="--",
+    linewidth=2,
+    label="Perfect Prediction"
+)
+
+plt.xlabel("Actual Time Overrun (Days)")
+plt.ylabel("Predicted Time Overrun (Days)")
+plt.title("Actual vs Predicted Time Overrun")
+
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.show()
+
+================ CELL 35 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(
+    comparison_df["Difference_Days"],
+    bins=30
+)
+
+plt.axvline(
+    0,
+    linestyle="--",
+    linewidth=2
+)
+
+plt.xlabel("Prediction Error (Days)")
+plt.ylabel("Number of Projects")
+plt.title("Distribution of Time Overrun Prediction Errors")
+
+plt.grid(axis="y", alpha=0.3)
+
+plt.show()
+
+================ CELL 36 (code) ================
+from sklearn.metrics import (mean_absolute_error,mean_squared_error,r2_score)
+
+# Actual and predicted values are in DAYS
+mae = mean_absolute_error(y_test_days,y_pred_days)
+
+rmse = np.sqrt(
+    mean_squared_error(
+        y_test_days,
+        y_pred_days
+    )
+)
+
+r2 = r2_score(y_test_days,y_pred_days)
+
+print("Time Overrun Regression Performance")
+print("------------------------------------")
+
+print("MAE  :", round(mae, 2), "days")
+print("RMSE :", round(rmse, 2), "days")
+print("R²   :", round(r2, 4))
+
+================ CELL 37 (code) ================
+baseline_results = {
+    "Model": "Random Forest Regressor - Baseline",
+    "MAE_days": round(mae, 2),
+    "RMSE_days": round(rmse, 2),
+    "R2": round(r2, 4)
+}
+
+baseline_results
+
+================ CELL 38 (markdown) ================
+Here Accuracy is very low, So we improve our model
+
+================ CELL 39 (code) ================
+# Convert date columns into datetime format
+
+reg_df_clean["Start_Date"] = pd.to_datetime(
+    reg_df_clean["Start_Date"],
+    errors="coerce",
+    dayfirst=True
+)
+
+reg_df_clean["Target_DOC"] = pd.to_datetime(
+    reg_df_clean["Target_DOC"],
+    errors="coerce",
+    dayfirst=True
+)
+
+print(reg_df_clean[
+    ["Start_Date", "Target_DOC"]
+].head())
+
+================ CELL 40 (code) ================
+# Calculate planned project duration in days
+
+reg_df_clean["Planned_Duration_Days"] = (
+    reg_df_clean["Target_DOC"]
+    - reg_df_clean["Start_Date"]
+).dt.days
+
+print(
+    reg_df_clean[
+        [
+            "Start_Date",
+            "Target_DOC",
+            "Planned_Duration_Days"
+        ]
+    ].head(10)
+)
+
+================ CELL 41 (code) ================
+print("\nDuration Statistics:")
+print(
+    reg_df_clean["Planned_Duration_Days"].describe()
+)
+
+print(
+    "\nNegative Duration:",
+    (reg_df_clean["Planned_Duration_Days"] < 0).sum()
+)
+
+================ CELL 42 (code) ================
+# Remove records with invalid planned duration
+
+reg_df_clean = reg_df_clean[
+    reg_df_clean["Planned_Duration_Days"] >= 0
+].copy()
+
+print("Rows after duration cleaning:", len(reg_df_clean))
+
+print(
+    "Negative durations remaining:",
+    (reg_df_clean["Planned_Duration_Days"] < 0).sum()
+)
+
+================ CELL 43 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(reg_df_clean["Planned_Duration_Days"],bins=30)
+
+plt.xlabel("Planned Project Duration (Days)")
+plt.ylabel("Number of Projects")
+plt.title("Distribution of Planned Project Duration")
+
+plt.grid(axis="y", alpha=0.3)
+
+plt.show()
+
+================ CELL 44 (markdown) ================
+CatBoost Arived
+
+================ CELL 45 (code) ================
+try:
+    import catboost
+    print("CatBoost version:", catboost.__version__)
+except ImportError:
+    print("CatBoost is not installed.")
+
+================ CELL 46 (code) ================
+!pip install catboost -q
+
+================ CELL 47 (code) ================
+import catboost
+
+print("CatBoost version:", catboost.__version__)
+
+================ CELL 48 (code) ================
+from catboost import CatBoostRegressor
+
+================ CELL 49 (code) ================
+catboost_reg = CatBoostRegressor(
+    iterations=500,
+    depth=6,
+    learning_rate=0.05,
+    loss_function="RMSE",
+    random_seed=42,
+    verbose=0
+)
+
+print("CatBoost Regressor created successfully!")
+
+================ CELL 50 (code) ================
+# Index positions of categorical columns
+
+cat_features = [
+    X_train_reg.columns.get_loc("Ministry"),
+    X_train_reg.columns.get_loc("Sector"),
+    X_train_reg.columns.get_loc("State")
+]
+
+print("Categorical feature indexes:")
+print(cat_features)
+
+================ CELL 51 (code) ================
+catboost_reg.fit(X_train_reg,y_train_reg,cat_features=cat_features)
+
+# print("CatBoost Regression Model trained successfully!")
+
+================ CELL 52 (code) ================
+# Predict log-transformed Time Overrun
+
+y_pred_log_cat = catboost_reg.predict(X_test_reg)
+
+print("First 10 Predicted Log Values:")
+print(y_pred_log_cat[:10])
+
+================ CELL 53 (code) ================
+# Convert CatBoost log predictions back to actual days
+
+y_pred_days_cat = np.expm1(y_pred_log_cat)
+
+print("First 10 Predicted Time Overrun Days:")
+print(np.round(y_pred_days_cat[:10], 2))
+
+================ CELL 54 (code) ================
+# Convert actual log target back to days
+
+y_test_days_cat = np.expm1(y_test_reg)
+
+cat_comparison_df = pd.DataFrame({
+    "Actual_Time_Overrun_Days": y_test_days_cat,
+    "Predicted_Time_Overrun_Days": y_pred_days_cat
+})
+
+cat_comparison_df["Difference_Days"] = (
+    cat_comparison_df["Actual_Time_Overrun_Days"]
+    - cat_comparison_df["Predicted_Time_Overrun_Days"]
+)
+
+cat_comparison_df.head(10)
+
+================ CELL 55 (code) ================
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+
+cat_mae = mean_absolute_error(
+    y_test_days_cat,
+    y_pred_days_cat
+)
+
+cat_rmse = np.sqrt(
+    mean_squared_error(
+        y_test_days_cat,
+        y_pred_days_cat
+    )
+)
+
+cat_r2 = r2_score(
+    y_test_days_cat,
+    y_pred_days_cat
+)
+
+print("CatBoost Time Overrun Regression Performance")
+print("---------------------------------------------")
+
+print("MAE  :", round(cat_mae, 2), "days")
+print("RMSE :", round(cat_rmse, 2), "days")
+print("R²   :", round(cat_r2, 4))
+
+================ CELL 56 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.scatter(
+    y_test_days_cat,
+    y_pred_days_cat,
+    alpha=0.6
+)
+
+max_value = max(
+    y_test_days_cat.max(),
+    y_pred_days_cat.max()
+)
+
+plt.plot(
+    [0, max_value],
+    [0, max_value],
+    linestyle="--",
+    linewidth=2,
+    label="Perfect Prediction"
+)
+
+plt.xlabel("Actual Time Overrun (Days)")
+plt.ylabel("Predicted Time Overrun (Days)")
+
+plt.title(
+    "CatBoost - Actual vs Predicted Time Overrun"
+)
+
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.show()
+
+================ CELL 57 (code) ================
+# Calculate progress gap
+
+reg_df_clean["Progress_Gap"] = (
+    100 - reg_df_clean["Physical_Progress_Pct"]
+)
+
+print(
+    reg_df_clean[
+        [
+            "Physical_Progress_Pct",
+            "Progress_Gap"
+        ]
+    ].head(10)
+)
+
+================ CELL 58 (code) ================
+!pip install xgboost -q
+
+================ CELL 59 (code) ================
+import xgboost as xgb
+
+print("XGBoost version:", xgb.__version__)
+
+================ CELL 60 (code) ================
+print("Cost Overrun Flag - Missing Values:")
+print(df["Cost_Overrun_Flag"].isnull().sum())
+
+print("\nCost Overrun Flag Distribution:")
+print(df["Cost_Overrun_Flag"].value_counts())
+
+================ CELL 61 (code) ================
+cost_df = df.dropna(
+    subset=["Cost_Overrun_Flag"]
+).copy()
+
+cost_df["Cost_Overrun_Flag"] = (
+    cost_df["Cost_Overrun_Flag"].astype(int)
+)
+
+print("Original rows :", len(df))
+print("Clean rows    :", len(cost_df))
+print("Removed rows  :", len(df) - len(cost_df))
+
+================ CELL 62 (code) ================
+features = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost",
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+X = cost_df[features].copy()
+
+print("Features selected:")
+print(X.columns.tolist())
+
+print("\nShape of X:", X.shape)
+
+================ CELL 63 (code) ================
+y = cost_df["Cost_Overrun_Flag"]
+
+print("Target shape:", y.shape)
+
+print("\nTarget distribution:")
+print(y.value_counts())
+
+================ CELL 64 (code) ================
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20,random_state=42,stratify=y)
+
+print("Training data:")
+print("X_train:", X_train.shape)
+print("y_train:", y_train.shape)
+
+print("\nTesting data:")
+print("X_test:", X_test.shape)
+print("y_test:", y_test.shape)
+
+================ CELL 65 (code) ================
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
+
+================ CELL 66 (code) ================
+numeric_features = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost"
+]
+
+categorical_features = [
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+print("Numerical Features:")
+print(numeric_features)
+
+print("\nCategorical Features:")
+print(categorical_features)
+
+================ CELL 67 (code) ================
+numeric_transformer = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="median")
+        )
+    ]
+)
+
+categorical_transformer = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="most_frequent")
+        ),
+        (
+            "encoder",
+            OneHotEncoder(handle_unknown="ignore")
+        )
+    ]
+)
+
+================ CELL 68 (code) ================
+preprocessor = ColumnTransformer(
+    transformers=[
+        (
+            "num",
+            numeric_transformer,
+            numeric_features
+        ),
+        (
+            "cat",
+            categorical_transformer,
+            categorical_features
+        )
+    ]
+)
+
+print("Preprocessing pipeline created successfully!")
+
+================ CELL 69 (code) ================
+from sklearn.linear_model import LogisticRegression
+
+================ CELL 70 (code) ================
+logistic_model = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor
+        ),
+        (
+            "classifier",
+            LogisticRegression(
+                max_iter=1000,
+                class_weight="balanced",
+                random_state=42
+            )
+        )
+    ]
+)
+
+print("Logistic Regression model created!")
+
+================ CELL 71 (code) ================
+logistic_model.fit(X_train,y_train)
+
+print("Logistic Regression training completed!")
+
+================ CELL 72 (code) ================
+y_pred_lr = logistic_model.predict(X_test)
+
+y_prob_lr = logistic_model.predict_proba(X_test)[:, 1]
+
+print("Predictions generated successfully!")
+
+================ CELL 73 (code) ================
+from sklearn.metrics import (accuracy_score,precision_score,recall_score,f1_score,roc_auc_score)
+
+accuracy_lr = accuracy_score(y_test, y_pred_lr)
+precision_lr = precision_score(y_test, y_pred_lr)
+recall_lr = recall_score(y_test, y_pred_lr)
+f1_lr = f1_score(y_test, y_pred_lr)
+roc_auc_lr = roc_auc_score(y_test, y_prob_lr)
+
+print("===== Logistic Regression Results =====")
+print("Accuracy :", round(accuracy_lr * 100, 2), "%")
+print("Precision:", round(precision_lr * 100, 2), "%")
+print("Recall   :", round(recall_lr * 100, 2), "%")
+print("F1 Score :", round(f1_lr * 100, 2), "%")
+print("ROC-AUC  :", round(roc_auc_lr, 4))
+
+================ CELL 74 (code) ================
+from sklearn.metrics import classification_report
+
+print(
+    classification_report(
+        y_test,
+        y_pred_lr,
+        target_names=[
+            "No Cost Overrun",
+            "Cost Overrun"
+        ]
+    )
+)
+
+================ CELL 75 (code) ================
+from sklearn.metrics import confusion_matrix
+
+cm_lr = confusion_matrix(y_test,y_pred_lr)
+
+print("Confusion Matrix:")
+print(cm_lr)
+
+================ CELL 76 (code) ================
+from sklearn.ensemble import RandomForestClassifier
+
+================ CELL 77 (code) ================
+rf_model = RandomForestClassifier(
+    n_estimators=300,
+    max_depth=12,
+    min_samples_split=5,
+    min_samples_leaf=2,
+    class_weight="balanced",
+    random_state=42,
+    n_jobs=-1
+)
+
+print("Random Forest model created!")
+
+================ CELL 78 (code) ================
+rf_pipeline = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor
+        ),
+        (
+            "classifier",
+            rf_model
+        )
+    ]
+)
+
+print("Random Forest pipeline created!")
+
+================ CELL 79 (code) ================
+rf_pipeline.fit(
+    X_train,
+    y_train
+)
+
+print("Random Forest training completed!")
+
+================ CELL 80 (code) ================
+y_pred_rf = rf_pipeline.predict(X_test)
+
+y_prob_rf = rf_pipeline.predict_proba(X_test)[:, 1]
+
+print("Random Forest predictions generated successfully!")
+
+================ CELL 81 (code) ================
+accuracy_rf = accuracy_score(y_test, y_pred_rf)
+precision_rf = precision_score(y_test, y_pred_rf)
+recall_rf = recall_score(y_test, y_pred_rf)
+f1_rf = f1_score(y_test, y_pred_rf)
+roc_auc_rf = roc_auc_score(y_test, y_prob_rf)
+
+print("===== Random Forest Results =====")
+print("Accuracy :", round(accuracy_rf * 100, 2), "%")
+print("Precision:", round(precision_rf * 100, 2), "%")
+print("Recall   :", round(recall_rf * 100, 2), "%")
+print("F1 Score :", round(f1_rf * 100, 2), "%")
+print("ROC-AUC  :", round(roc_auc_rf, 4))
+
+================ CELL 82 (code) ================
+print(
+    classification_report(
+        y_test,
+        y_pred_rf,
+        target_names=[
+            "No Cost Overrun",
+            "Cost Overrun"
+        ]
+    )
+)
+
+================ CELL 83 (code) ================
+cm_rf = confusion_matrix(y_test, y_pred_rf)
+
+print("Random Forest Confusion Matrix:")
+print(cm_rf)
+
+================ CELL 84 (code) ================
+import xgboost as xgb
+
+print("XGBoost version:", xgb.__version__)
+
+================ CELL 85 (code) ================
+xgb_model = xgb.XGBClassifier(
+    n_estimators=300,
+    max_depth=6,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    objective="binary:logistic",
+    eval_metric="logloss",
+    random_state=42,
+    n_jobs=-1
+)
+
+print("XGBoost model created!")
+
+================ CELL 86 (code) ================
+xgb_pipeline = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor
+        ),
+        (
+            "classifier",
+            xgb_model
+        )
+    ]
+)
+
+print("XGBoost pipeline created!")
+
+================ CELL 87 (code) ================
+xgb_pipeline.fit(X_train, y_train)
+
+print("XGBoost training completed!")
+
+================ CELL 88 (code) ================
+y_pred_xgb = xgb_pipeline.predict(X_test)
+
+y_prob_xgb = xgb_pipeline.predict_proba(X_test)[:, 1]
+
+print("XGBoost predictions generated successfully!")
+
+================ CELL 89 (code) ================
+accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
+precision_xgb = precision_score(y_test, y_pred_xgb)
+recall_xgb = recall_score(y_test, y_pred_xgb)
+f1_xgb = f1_score(y_test, y_pred_xgb)
+roc_auc_xgb = roc_auc_score(y_test, y_prob_xgb)
+
+print("===== XGBoost Results =====")
+print("Accuracy :", round(accuracy_xgb * 100, 2), "%")
+print("Precision:", round(precision_xgb * 100, 2), "%")
+print("Recall   :", round(recall_xgb * 100, 2), "%")
+print("F1 Score :", round(f1_xgb * 100, 2), "%")
+print("ROC-AUC  :", round(roc_auc_xgb, 4))
+
+================ CELL 90 (code) ================
+print(
+    classification_report(
+        y_test,
+        y_pred_xgb,
+        target_names=[
+            "No Cost Overrun",
+            "Cost Overrun"
+        ]
+    )
+)
+
+================ CELL 91 (code) ================
+cm_xgb = confusion_matrix(
+    y_test,
+    y_pred_xgb
+)
+
+print("XGBoost Confusion Matrix:")
+print(cm_xgb)
+
+================ CELL 92 (code) ================
+comparison = pd.DataFrame({
+    "Model": [
+        "Logistic Regression",
+        "Random Forest",
+        "XGBoost"
+    ],
+
+    "Accuracy": [
+        accuracy_lr * 100,
+        accuracy_rf * 100,
+        accuracy_xgb * 100
+    ],
+
+    "Precision": [
+        precision_lr * 100,
+        precision_rf * 100,
+        precision_xgb * 100
+    ],
+
+    "Recall": [
+        recall_lr * 100,
+        recall_rf * 100,
+        recall_xgb * 100
+    ],
+
+    "F1 Score": [
+        f1_lr * 100,
+        f1_rf * 100,
+        f1_xgb * 100
+    ],
+
+    "ROC-AUC": [
+        roc_auc_lr,
+        roc_auc_rf,
+        roc_auc_xgb
+    ]
+})
+
+comparison.round(2)
+
+================ CELL 93 (code) ================
+best_model = comparison.loc[
+    comparison["ROC-AUC"].idxmax()
+]
+
+print("Best Model:")
+print(best_model)
+
+================ CELL 94 (code) ================
+cm_xgb = confusion_matrix(y_test,y_pred_xgb)
+
+print("XGBoost Confusion Matrix:")
+print(cm_xgb)
+
+================ CELL 95 (code) ================
+print(classification_report(y_test,y_pred_xgb,
+        target_names=[
+            "No Cost Overrun",
+            "Cost Overrun"
+        ]
+    )
+)
+
+================ CELL 96 (code) ================
+threshold = 0.40
+
+y_pred_xgb_40 = (y_prob_xgb >= threshold).astype(int)
+
+print("Threshold:", threshold)
+print(classification_report(y_test,y_pred_xgb_40,
+        target_names=[
+            "No Cost Overrun",
+            "Cost Overrun"
+        ]
+    )
+)
+
+================ CELL 97 (code) ================
+cm_xgb_40 = confusion_matrix(y_test,y_pred_xgb_40)
+
+print("Confusion Matrix:")
+print(cm_xgb_40)
+
+================ CELL 98 (code) ================
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+thresholds = [0.30, 0.40, 0.50, 0.60, 0.70]
+
+threshold_results = []
+
+for threshold in thresholds:
+
+    y_pred = (y_prob_xgb >= threshold).astype(int)
+
+    threshold_results.append({
+        "Threshold": threshold,
+        "Accuracy": accuracy_score(y_test, y_pred) * 100,
+        "Precision": precision_score(y_test, y_pred) * 100,
+        "Recall": recall_score(y_test, y_pred) * 100,
+        "F1_Score": f1_score(y_test, y_pred) * 100
+    })
+
+threshold_df = pd.DataFrame(threshold_results)
+
+threshold_df.round(2)
+
+================ CELL 99 (code) ================
+print("Cost Overrun (₹ Crore) - Missing Values:")
+print(cost_df["Cost_Overrun_Cr"].isnull().sum())
+
+print("\nCost Overrun (₹ Crore) - Valid Values:")
+print(cost_df["Cost_Overrun_Cr"].notnull().sum())
+
+print("\nBasic Statistics:")
+print(cost_df["Cost_Overrun_Cr"].describe())
+
+================ CELL 100 (code) ================
+negative_cost = cost_df[
+    cost_df["Cost_Overrun_Cr"] < 0
+]
+
+print("Negative Cost Overrun Records:",
+      len(negative_cost))
+
+print("\nNegative Cost Overrun values:")
+
+print(
+    negative_cost[
+        [
+            "Project_ID",
+            "Project_Name",
+            "Original_Cost_Cr",
+            "Revised_Cost_Cr",
+            "Cost_Overrun_Cr",
+            "Cost_Overrun_Pct"
+        ]
+    ].sort_values(
+        "Cost_Overrun_Cr"
+    ).head(20)
+)
+
+================ CELL 101 (code) ================
+# Keep only projects where actual cost overrun is positive
+
+cost_reg_df = cost_df[cost_df["Cost_Overrun_Cr"] > 0].copy()
+
+print("Total Cost Dataset :", len(cost_df))
+print("Positive Overrun Projects :", len(cost_reg_df))
+print("Removed No-Overrun/Underrun Projects :",
+      len(cost_df) - len(cost_reg_df))
+
+================ CELL 102 (code) ================
+print("Cost Overrun Statistics:")
+print(cost_reg_df["Cost_Overrun_Cr"].describe())
+
+================ CELL 103 (code) ================
+print("Highest Cost Overrun Projects:")
+
+print(
+    cost_reg_df[
+        [
+            "Project_ID",
+            "Project_Name",
+            "Original_Cost_Cr",
+            "Revised_Cost_Cr",
+            "Cost_Overrun_Cr",
+            "Cost_Overrun_Pct"
+        ]
+    ]
+    .sort_values(
+        "Cost_Overrun_Cr",
+        ascending=False
+    )
+    .head(10)
+)
+
+================ CELL 104 (code) ================
+Q1 = cost_reg_df["Cost_Overrun_Cr"].quantile(0.25)
+Q3 = cost_reg_df["Cost_Overrun_Cr"].quantile(0.75)
+
+IQR = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+outliers = cost_reg_df[
+    (cost_reg_df["Cost_Overrun_Cr"] < lower_bound) |
+    (cost_reg_df["Cost_Overrun_Cr"] > upper_bound)
+]
+
+print("Q1:", Q1)
+print("Q3:", Q3)
+print("IQR:", IQR)
+print("Lower Bound:", lower_bound)
+print("Upper Bound:", upper_bound)
+print("Number of Outliers:", len(outliers))
+
+================ CELL 105 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(cost_reg_df["Cost_Overrun_Cr"],bins=40)
+
+plt.xlabel("Cost Overrun (₹ Crore)")
+plt.ylabel("Number of Projects")
+plt.title("Distribution of Cost Overrun")
+
+plt.show()
+
+================ CELL 106 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(np.log1p(cost_reg_df["Cost_Overrun_Cr"]),bins=40)
+
+plt.xlabel("log(1 + Cost Overrun)")
+plt.ylabel("Number of Projects")
+plt.title("Log-Transformed Distribution of Cost Overrun")
+
+plt.show()
+
+================ CELL 107 (code) ================
+plt.figure(figsize=(10, 4))
+
+plt.boxplot(cost_reg_df["Cost_Overrun_Cr"],vert=False)
+
+plt.xlabel("Cost Overrun (₹ Crore)")
+plt.title("Box Plot of Cost Overrun")
+
+plt.show()
+
+================ CELL 108 (code) ================
+cost_reg_df["Log_Cost_Overrun"] = np.log1p(
+    cost_reg_df["Cost_Overrun_Cr"]
+)
+
+cost_reg_df[
+    [
+        "Cost_Overrun_Cr",
+        "Log_Cost_Overrun"
+    ]
+].head(10)
+
+================ CELL 109 (code) ================
+reg_features = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost",
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+X_reg = cost_reg_df[reg_features].copy()
+
+print("Regression Features:")
+print(X_reg.columns.tolist())
+
+print("\nShape of X_reg:", X_reg.shape)
+
+================ CELL 110 (code) ================
+y_reg = cost_reg_df["Log_Cost_Overrun"]
+
+print("Target Shape:", y_reg.shape)
+
+print("\nTarget Statistics:")
+print(y_reg.describe())
+
+================ CELL 111 (code) ================
+from sklearn.model_selection import train_test_split
+
+X_reg_train, X_reg_test, y_reg_train, y_reg_test = train_test_split(X_reg,y_reg,test_size=0.20,random_state=42)
+
+print("Training data:")
+print("X_reg_train:", X_reg_train.shape)
+print("y_reg_train:", y_reg_train.shape)
+
+print("\nTesting data:")
+print("X_reg_test:", X_reg_test.shape)
+print("y_reg_test:", y_reg_test.shape)
+
+================ CELL 112 (code) ================
+numeric_reg_features = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost"
+]
+
+categorical_reg_features = [
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+print("Numeric features:", numeric_reg_features)
+print("Categorical features:", categorical_reg_features)
+
+================ CELL 113 (code) ================
+numeric_reg_transformer = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="median")
+        )
+    ]
+)
+
+categorical_reg_transformer = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="most_frequent")
+        ),
+        (
+            "encoder",
+            OneHotEncoder(handle_unknown="ignore")
+        )
+    ]
+)
+
+reg_preprocessor = ColumnTransformer(
+    transformers=[
+        (
+            "num",
+            numeric_reg_transformer,
+            numeric_reg_features
+        ),
+        (
+            "cat",
+            categorical_reg_transformer,
+            categorical_reg_features
+        )
+    ]
+)
+
+print("Regression preprocessing pipeline created!")
+
+================ CELL 114 (code) ================
+from sklearn.linear_model import LinearRegression
+
+================ CELL 115 (code) ================
+linear_reg_model = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            reg_preprocessor
+        ),
+        (
+            "regressor",
+            LinearRegression()
+        )
+    ]
+)
+
+print("Linear Regression model created!")
+
+================ CELL 116 (code) ================
+linear_reg_model.fit(X_reg_train,y_reg_train)
+
+print("Linear Regression training completed!")
+
+================ CELL 117 (code) ================
+y_pred_log_lr = linear_reg_model.predict(X_reg_test)
+
+print("First 10 predicted log values:")
+print(y_pred_log_lr[:10])
+
+================ CELL 118 (code) ================
+y_pred_cost_lr = np.expm1(y_pred_log_lr)
+
+y_actual_cost = np.expm1(y_reg_test)
+
+print("First 10 predicted Cost Overrun (₹ Cr):")
+print(y_pred_cost_lr[:10])
+
+================ CELL 119 (code) ================
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+mae_lr = mean_absolute_error(y_actual_cost,y_pred_cost_lr)
+
+rmse_lr = np.sqrt(mean_squared_error(y_actual_cost,y_pred_cost_lr))
+
+r2_lr = r2_score(y_actual_cost,y_pred_cost_lr)
+
+print("===== Linear Regression Results =====")
+print("MAE :", round(mae_lr, 2), "Crore")
+print("RMSE:", round(rmse_lr, 2), "Crore")
+print("R²  :", round(r2_lr, 4))
+
+================ CELL 120 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.scatter(y_actual_cost,y_pred_cost_lr,alpha=0.6)
+
+plt.xlabel("Actual Cost Overrun (₹ Crore)")
+plt.ylabel("Predicted Cost Overrun (₹ Crore)")
+plt.title("Linear Regression: Actual vs Predicted Cost Overrun")
+
+plt.show()
+
+================ CELL 121 (code) ================
+rf_reg_model = RandomForestRegressor(
+    n_estimators=300,
+    max_depth=12,
+    min_samples_split=5,
+    min_samples_leaf=2,
+    random_state=42,
+    n_jobs=-1
+)
+
+print("Random Forest Regressor created!")
+
+================ CELL 122 (code) ================
+rf_reg_pipeline = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            reg_preprocessor
+        ),
+        (
+            "regressor",
+            rf_reg_model
+        )
+    ]
+)
+
+print("Random Forest Regression pipeline created!")
+
+================ CELL 123 (code) ================
+rf_reg_pipeline.fit(X_reg_train,y_reg_train)
+
+print("Random Forest Regressor training completed!")
+
+================ CELL 124 (code) ================
+y_pred_log_rf = rf_reg_pipeline.predict(X_reg_test)
+
+print("First 10 predicted log values:")
+print(y_pred_log_rf[:10])
+
+================ CELL 125 (code) ================
+y_pred_cost_rf = np.expm1(y_pred_log_rf)
+
+print("First 10 predicted Cost Overrun (₹ Cr):")
+print(y_pred_cost_rf[:10])
+
+================ CELL 126 (code) ================
+mae_rf = mean_absolute_error(y_actual_cost,y_pred_cost_rf)
+
+rmse_rf = np.sqrt(mean_squared_error(y_actual_cost,y_pred_cost_rf))
+
+r2_rf = r2_score(y_actual_cost,y_pred_cost_rf)
+
+print("===== Random Forest Regressor Results =====")
+print("MAE :", round(mae_rf, 2), "Crore")
+print("RMSE:", round(rmse_rf, 2), "Crore")
+print("R²  :", round(r2_rf, 4))
+
+================ CELL 127 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.scatter(
+    y_actual_cost,
+    y_pred_cost_rf,
+    alpha=0.6
+)
+
+plt.xlabel("Actual Cost Overrun (₹ Crore)")
+plt.ylabel("Predicted Cost Overrun (₹ Crore)")
+plt.title("Random Forest: Actual vs Predicted Cost Overrun")
+
+plt.show()
+
+================ CELL 128 (code) ================
+from xgboost import XGBRegressor
+
+print("XGBoost Regressor imported successfully!")
+
+================ CELL 129 (code) ================
+xgb_reg_model = XGBRegressor(
+    n_estimators=300,
+    max_depth=6,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    objective="reg:squarederror",
+    random_state=42,
+    n_jobs=-1
+)
+
+print("XGBoost Regressor created successfully!")
+
+================ CELL 130 (code) ================
+xgb_reg_pipeline = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            reg_preprocessor
+        ),
+        (
+            "regressor",
+            xgb_reg_model
+        )
+    ]
+)
+
+print("XGBoost Regression Pipeline created successfully!")
+
+================ CELL 131 (code) ================
+xgb_reg_pipeline.fit(X_reg_train,y_reg_train)
+
+print("XGBoost Regressor training completed!")
+
+================ CELL 132 (code) ================
+y_pred_log_xgb = xgb_reg_pipeline.predict(X_reg_test)
+
+print("First 10 predicted log values:")
+print(y_pred_log_xgb[:10])
+
+================ CELL 133 (code) ================
+y_pred_cost_xgb = np.expm1(y_pred_log_xgb)
+
+print("First 10 predicted Cost Overrun (₹ Cr):")
+print(y_pred_cost_xgb[:10])
+
+================ CELL 134 (code) ================
+mae_xgb = mean_absolute_error(y_actual_cost,y_pred_cost_xgb)
+
+rmse_xgb = np.sqrt(mean_squared_error(y_actual_cost,y_pred_cost_xgb))
+
+r2_xgb = r2_score(y_actual_cost,y_pred_cost_xgb)
+
+print("===== XGBoost Regressor Results =====")
+print("MAE :", round(mae_xgb, 2), "Crore")
+print("RMSE:", round(rmse_xgb, 2), "Crore")
+print("R²  :", round(r2_xgb, 4))
+
+================ CELL 135 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.scatter(
+    y_actual_cost,
+    y_pred_cost_xgb,
+    alpha=0.6
+)
+
+plt.xlabel("Actual Cost Overrun (₹ Crore)")
+plt.ylabel("Predicted Cost Overrun (₹ Crore)")
+plt.title("XGBoost: Actual vs Predicted Cost Overrun")
+
+plt.show()
+
+================ CELL 136 (code) ================
+reg_comparison = pd.DataFrame({
+    "Model": [
+        "Linear Regression",
+        "Random Forest",
+        "XGBoost"
+    ],
+    "MAE": [
+        mae_lr,
+        mae_rf,
+        mae_xgb
+    ],
+    "RMSE": [
+        rmse_lr,
+        rmse_rf,
+        rmse_xgb
+    ],
+    "R2": [
+        r2_lr,
+        r2_rf,
+        r2_xgb
+    ]
+})
+
+reg_comparison.round(2)
+
+================ CELL 137 (code) ================
+mae_log_xgb = mean_absolute_error(
+    y_reg_test,
+    y_pred_log_xgb
+)
+
+rmse_log_xgb = np.sqrt(
+    mean_squared_error(
+        y_reg_test,
+        y_pred_log_xgb
+    )
+)
+
+r2_log_xgb = r2_score(
+    y_reg_test,
+    y_pred_log_xgb
+)
+
+print("===== XGBoost Log-Scale Results =====")
+print("MAE :", round(mae_log_xgb, 4))
+print("RMSE:", round(rmse_log_xgb, 4))
+print("R²  :", round(r2_log_xgb, 4))
+
+================ CELL 138 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.scatter(
+    y_actual_cost,
+    y_pred_cost_xgb,
+    alpha=0.6
+)
+
+plt.xscale("log")
+plt.yscale("log")
+
+plt.xlabel("Actual Cost Overrun (₹ Crore) - Log Scale")
+plt.ylabel("Predicted Cost Overrun (₹ Crore) - Log Scale")
+plt.title("XGBoost: Actual vs Predicted Cost Overrun (Log Scale)")
+
+plt.show()
+
+================ CELL 139 (code) ================
+y_pred_log_rf = rf_reg_pipeline.predict(X_reg_test)
+
+mae_log_rf = mean_absolute_error(
+    y_reg_test,
+    y_pred_log_rf
+)
+
+rmse_log_rf = np.sqrt(
+    mean_squared_error(
+        y_reg_test,
+        y_pred_log_rf
+    )
+)
+
+r2_log_rf = r2_score(
+    y_reg_test,
+    y_pred_log_rf
+)
+
+print("===== Random Forest Log-Scale Results =====")
+print("MAE :", round(mae_log_rf, 4))
+print("RMSE:", round(rmse_log_rf, 4))
+print("R²  :", round(r2_log_rf, 4))
+
+================ CELL 140 (code) ================
+print("Cost Overrun Percentage Statistics:")
+print(cost_df["Cost_Overrun_Pct"].describe())
+
+================ CELL 141 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(cost_df["Cost_Overrun_Pct"].dropna(),bins=40)
+
+plt.xlabel("Cost Overrun (%)")
+plt.ylabel("Number of Projects")
+plt.title("Distribution of Cost Overrun Percentage")
+
+plt.show()
+
+================ CELL 142 (code) ================
+print("Negative Cost Overrun Percentage:",
+      (cost_df["Cost_Overrun_Pct"] < 0).sum())
+
+print("Zero Cost Overrun Percentage:",
+      (cost_df["Cost_Overrun_Pct"] == 0).sum())
+
+print("Positive Cost Overrun Percentage:",
+      (cost_df["Cost_Overrun_Pct"] > 0).sum())
+
+================ CELL 143 (code) ================
+error_df = pd.DataFrame({
+    "Actual_Cost_Overrun": y_actual_cost,
+    "Predicted_Cost_Overrun": y_pred_cost_rf
+})
+
+error_df["Absolute_Error"] = (
+    abs(
+        error_df["Actual_Cost_Overrun"]
+        - error_df["Predicted_Cost_Overrun"]
+    )
+)
+
+error_df.head(10)
+
+================ CELL 144 (code) ================
+print("Lowest Errors:")
+print(
+    error_df.sort_values(
+        "Absolute_Error"
+    ).head(10)
+)
+
+print("\nHighest Errors:")
+print(
+    error_df.sort_values(
+        "Absolute_Error",
+        ascending=False
+    ).head(10)
+)
+
+================ CELL 145 (code) ================
+prediction_output = pd.DataFrame({
+    "Actual_Cost_Overrun": y_actual_cost,
+    "Predicted_Cost_Overrun": y_pred_cost_rf
+})
+
+prediction_output["Expected_Revised_Cost"] = (
+    X_reg_test["Original_Cost_Cr"].values
+    + prediction_output["Predicted_Cost_Overrun"]
+)
+
+prediction_output.head(10)
+
+================ CELL 146 (code) ================
+error_df["Percentage_Error"] = (
+    abs(
+        error_df["Actual_Cost_Overrun"]
+        - error_df["Predicted_Cost_Overrun"]
+    )
+    / error_df["Actual_Cost_Overrun"]
+) * 100
+
+error_df.head(10)
+
+================ CELL 147 (code) ================
+print("Mean Percentage Error:",
+      round(error_df["Percentage_Error"].mean(), 2), "%")
+
+print("Median Percentage Error:",
+      round(error_df["Percentage_Error"].median(), 2), "%")
+
+================ CELL 148 (code) ================
+plt.figure(figsize=(10, 6))
+
+plt.hist(
+    error_df["Percentage_Error"].replace(
+        [np.inf, -np.inf],
+        np.nan
+    ).dropna(),
+    bins=40
+)
+
+plt.xlabel("Absolute Percentage Error (%)")
+plt.ylabel("Number of Projects")
+plt.title("Cost Overrun Prediction Error Distribution")
+
+plt.show()
+
+================ CELL 149 (code) ================
+from sklearn.metrics import median_absolute_error
+
+median_percentage_error = (
+    np.median(error_df["Percentage_Error"].replace(
+        [np.inf, -np.inf],
+        np.nan
+    ).dropna())
+)
+
+print(
+    "Median Absolute Percentage Error:",
+    round(median_percentage_error, 2),
+    "%"
+)
+
+================ CELL 150 (code) ================
+reasonable_errors = error_df[
+    error_df["Percentage_Error"] <= 100
+]
+
+print(
+    "Projects with Absolute Percentage Error <= 100%:",
+    len(reasonable_errors)
+)
+
+print(
+    "Percentage of test projects:",
+    round(
+        len(reasonable_errors) / len(error_df) * 100,
+        2
+    ),
+    "%"
+)
+
+================ CELL 151 (code) ================
+plot_error = error_df["Percentage_Error"].clip(upper=200)
+
+plt.figure(figsize=(10, 6))
+
+plt.hist(
+    plot_error,
+    bins=40
+)
+
+plt.xlabel("Absolute Percentage Error (%)")
+plt.ylabel("Number of Projects")
+plt.title("Cost Overrun Prediction Error (Capped at 200%)")
+
+plt.show()
+
+================ CELL 152 (code) ================
+# Final Cost Overrun Probability
+# XGBoost probability from the classification model
+
+cost_overrun_probability = y_prob_xgb * 100
+
+print("First 10 Cost Overrun Probabilities:")
+print(cost_overrun_probability[:10])
+
+================ CELL 153 (code) ================
+# Convert probability into Cost Risk Score (0-100)
+
+cost_risk_score = cost_overrun_probability
+
+print("First 10 Cost Risk Scores:")
+print(cost_risk_score[:10])
+
+================ CELL 154 (code) ================
+# Common project data for risk scoring
+
+risk_features = [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost",
+    "Ministry",
+    "Sector",
+    "State"
+]
+
+risk_df = df[risk_features].copy()
+
+print("Risk Dataset Shape:", risk_df.shape)
+
+================ CELL 155 (code) ================
+# Cost Overrun Probability using trained XGBoost classifier
+
+risk_df["Cost_Overrun_Probability"] = (
+    xgb_pipeline.predict_proba(risk_df)[:, 1] * 100
+)
+
+print(
+    risk_df[
+        ["Cost_Overrun_Probability"]
+    ].head(10)
+)
+
+================ CELL 156 (code) ================
+# Time Overrun Probability using trained Time Overrun model
+
+risk_df["Time_Overrun_Probability"] = (
+    model.predict_proba(risk_df)[:, 1] * 100
+)
+
+print(
+    risk_df[
+        [
+            "Cost_Overrun_Probability",
+            "Time_Overrun_Probability"
+        ]
+    ].head(10)
+)
+
+================ CELL 157 (code) ================
+# Prepare data for Time Overrun model
+
+time_df = df.dropna(subset=["Time_Overrun_Flag"]).copy()
+
+time_df["Time_Overrun_Flag"] = (time_df["Time_Overrun_Flag"].astype(int))
+
+time_X = time_df[
+    [
+        "Original_Cost_Cr",
+        "Cumulative_Expenditure_Cr",
+        "Physical_Progress_Pct",
+        "Expenditure_Pct_of_Original_Cost",
+        "Ministry",
+        "Sector",
+        "State"
+    ]
+]
+
+time_y = time_df["Time_Overrun_Flag"]
+
+print("Time Model Dataset:", time_X.shape)
+print("Target Distribution:")
+print(time_y.value_counts())
+
+
+================ CELL 158 (code) ================
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+
+time_X_train, time_X_test, time_y_train, time_y_test = train_test_split(
+    time_X,
+    time_y,
+    test_size=0.20,
+    random_state=42,
+    stratify=time_y
+)
+
+time_rf_model = RandomForestClassifier(
+    n_estimators=200,
+    random_state=42,
+    class_weight="balanced",
+    n_jobs=-1
+)
+
+time_rf_pipeline = Pipeline(
+    steps=[
+        ("preprocessor", preprocessor),
+        ("classifier", time_rf_model)
+    ]
+)
+
+time_rf_pipeline.fit(
+    time_X_train,
+    time_y_train
+)
+
+print("Time Overrun Random Forest trained successfully!")
+
+================ CELL 159 (code) ================
+risk_df["Time_Overrun_Probability"] = (time_rf_pipeline.predict_proba(risk_df)[:, 1] * 100)
+
+print(risk_df[
+        [
+            "Cost_Overrun_Probability",
+            "Time_Overrun_Probability"
+        ]
+    ].head(10)
+)
+
+================ CELL 160 (code) ================
+risk_df["Overall_Risk_Score"] = (
+    0.5 * risk_df["Cost_Overrun_Probability"]
+    + 0.5 * risk_df["Time_Overrun_Probability"]
+)
+
+print(
+    risk_df[
+        [
+            "Cost_Overrun_Probability",
+            "Time_Overrun_Probability",
+            "Overall_Risk_Score"
+        ]
+    ].head(10)
+)
+
+================ CELL 161 (code) ================
+def get_risk_level(score):
+
+    if score < 25:
+        return "Low"
+
+    elif score < 50:
+        return "Medium"
+
+    elif score < 75:
+        return "High"
+
+    else:
+        return "Critical"
+
+
+risk_df["Risk_Level"] = (
+    risk_df["Overall_Risk_Score"]
+    .apply(get_risk_level)
+)
+
+print(
+    risk_df[
+        [
+            "Overall_Risk_Score",
+            "Risk_Level"
+        ]
+    ].head(10)
+)
+
+================ CELL 162 (code) ================
+import matplotlib.pyplot as plt
+
+risk_counts = risk_df["Risk_Level"].value_counts()
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(
+    risk_counts.index,
+    risk_counts.values
+)
+
+plt.xlabel("Risk Level")
+plt.ylabel("Number of Projects")
+plt.title("Infrastructure Project Risk Distribution")
+
+plt.show()
+
+================ CELL 163 (code) ================
+risk_results = df[
+    [
+        "Project_ID",
+        "Project_Name",
+        "Ministry",
+        "Sector",
+        "State"
+    ]
+].copy()
+
+risk_results["Cost_Overrun_Probability"] = (
+    risk_df["Cost_Overrun_Probability"].values
+)
+
+risk_results["Time_Overrun_Probability"] = (
+    risk_df["Time_Overrun_Probability"].values
+)
+
+risk_results["Overall_Risk_Score"] = (
+    risk_df["Overall_Risk_Score"].values
+)
+
+risk_results["Risk_Level"] = (
+    risk_df["Risk_Level"].values
+)
+
+print("Risk result dataset created!")
+
+================ CELL 164 (code) ================
+top_10_risky = (
+    risk_results
+    .sort_values(
+        "Overall_Risk_Score",
+        ascending=False
+    )
+    .head(10)
+)
+
+top_10_risky
+
+================ CELL 165 (code) ================
+top_10_risky[
+    [
+        "Project_ID",
+        "Project_Name",
+        "Sector",
+        "State",
+        "Cost_Overrun_Probability",
+        "Time_Overrun_Probability",
+        "Overall_Risk_Score",
+        "Risk_Level"
+    ]
+].reset_index(drop=True)
+
+================ CELL 166 (code) ================
+early_warning_df = risk_results.copy()
+
+early_warning_df = early_warning_df.merge(
+    df[
+        [
+            "Project_ID",
+            "Original_Cost_Cr",
+            "Cumulative_Expenditure_Cr",
+            "Physical_Progress_Pct",
+            "Expenditure_Pct_of_Original_Cost"
+        ]
+    ],
+    on="Project_ID",
+    how="left"
+)
+
+early_warning_df.head()
+
+================ CELL 167 (code) ================
+def generate_warning(row):
+
+    if row["Overall_Risk_Score"] >= 75:
+        return "CRITICAL EARLY WARNING"
+
+    elif row["Overall_Risk_Score"] >= 50:
+        return "HIGH EARLY WARNING"
+
+    elif row["Overall_Risk_Score"] >= 25:
+        return "MONITOR"
+
+    else:
+        return "NORMAL"
+
+
+early_warning_df["Warning_Status"] = (
+    early_warning_df.apply(
+        generate_warning,
+        axis=1
+    )
+)
+
+print(
+    early_warning_df[
+        [
+            "Project_ID",
+            "Overall_Risk_Score",
+            "Risk_Level",
+            "Warning_Status"
+        ]
+    ].head(10)
+)
+
+================ CELL 168 (code) ================
+critical_projects = (
+    early_warning_df[
+        early_warning_df["Overall_Risk_Score"] >= 75
+    ]
+    .sort_values(
+        "Overall_Risk_Score",
+        ascending=False
+    )
+)
+
+print(
+    "Total Critical/High-Risk Projects:",
+    len(critical_projects)
+)
+
+critical_projects.head(10)
+
+================ CELL 169 (code) ================
+def generate_warning_reasons(row):
+
+    reasons = []
+
+    if row["Time_Overrun_Probability"] >= 75:
+        reasons.append("High schedule delay risk")
+
+    if row["Cost_Overrun_Probability"] >= 75:
+        reasons.append("High cost overrun risk")
+
+    if (
+        pd.notna(row["Physical_Progress_Pct"])
+        and row["Physical_Progress_Pct"] < 50
+    ):
+        reasons.append("Low physical progress")
+
+    if (
+        pd.notna(row["Expenditure_Pct_of_Original_Cost"])
+        and pd.notna(row["Physical_Progress_Pct"])
+        and row["Expenditure_Pct_of_Original_Cost"]
+        > row["Physical_Progress_Pct"] + 10
+    ):
+        reasons.append(
+            "Expenditure is significantly ahead of physical progress"
+        )
+
+    if len(reasons) == 0:
+        reasons.append("No major warning indicator detected")
+
+    return reasons
+
+================ CELL 170 (code) ================
+early_warning_df["Warning_Reasons"] = (
+    early_warning_df.apply(
+        generate_warning_reasons,
+        axis=1
+    )
+)
+
+early_warning_df[
+    [
+        "Project_ID",
+        "Risk_Level",
+        "Warning_Status",
+        "Warning_Reasons"
+    ]
+].head(10)
+
+================ CELL 171 (code) ================
+early_warning_df["Warning_Message"] = (
+    early_warning_df["Warning_Reasons"]
+    .apply(lambda x: " | ".join(x))
+)
+
+early_warning_df[
+    [
+        "Project_ID",
+        "Risk_Level",
+        "Warning_Message"
+    ]
+].head(10)
+
+================ CELL 172 (code) ================
+

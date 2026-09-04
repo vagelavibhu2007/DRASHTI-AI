@@ -1,0 +1,27 @@
+{
+  "model_type": "RandomForestClassifier & Regressor Pipeline",
+  "version": "4.2.0",
+  "features": [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost",
+    "Ministry",
+    "Sector",
+    "State"
+  ],
+  "numeric_features": [
+    "Original_Cost_Cr",
+    "Cumulative_Expenditure_Cr",
+    "Physical_Progress_Pct",
+    "Expenditure_Pct_of_Original_Cost"
+  ],
+  "categorical_features": [
+    "Ministry",
+    "Sector",
+    "State"
+  ],
+  "roc_auc": 0.8687,
+  "accuracy": "84.83%",
+  "status": "Production Calibrated"
+}
