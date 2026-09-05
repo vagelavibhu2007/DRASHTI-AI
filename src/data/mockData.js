@@ -1,5 +1,5 @@
 /**
- * DRASHTI AI - Comprehensive Mock Data Store
+ * DRISHTI AI - Comprehensive Mock Data Store
  * Infrastructure Project Intelligence Platform
  */
 
@@ -512,7 +512,7 @@ export const AI_ASSISTANT_KNOWLEDGE_BASE = [
     triggers: ['critical', 'highest risk', 'which projects are at critical risk', 'critical projects'],
     response: `### 🚨 Critical Risk Projects Analysis (September 2026)
 
-Based on the DRASHTI AI predictive model, **410 projects (20.9%)** are categorized as **CRITICAL RISK** (Overall Risk Score ≥ 80).
+Based on the DRISHTI AI predictive model, **410 projects (20.9%)** are categorized as **CRITICAL RISK** (Overall Risk Score ≥ 80).
 
 Here are the top high-urgency projects requiring executive intervention:
 
@@ -569,7 +569,7 @@ According to spatial aggregated predictions:
     triggers: ['why is this project critical', 'why risky', 'shap', 'explainable ai', 'root cause'],
     response: `### 🔍 Explainable AI (XAI) Risk Decomposition
 
-DRASHTI AI evaluates 36 dynamic feature variables using gradient-boosted SHAP trees:
+DRISHTI AI evaluates 36 dynamic feature variables using gradient-boosted SHAP trees:
 
 | Risk Driver | Average Weight | Primary Impact Mechanism |
 | :--- | :--- | :--- |

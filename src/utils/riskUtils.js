@@ -1,5 +1,5 @@
 /**
- * DRASHTI AI - Infrastructure Risk Assessment Utilities
+ * DRISHTI AI - Infrastructure Risk Assessment Utilities
  */
 
 export const RISK_LEVELS = {

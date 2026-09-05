@@ -5,7 +5,7 @@ import shap
 from backend.ml.model_loader import model_loader
 from backend.schemas.project_schema import ShapContribution
 
-logger = logging.getLogger("drashti.ml.explainer")
+logger = logging.getLogger("drishti.ml.explainer")
 
 class ShapExplainer:
     def __init__(self):

@@ -29,7 +29,7 @@ export const USPBanner = () => {
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-sky-400/20 text-sky-300 border border-sky-400/30">
               CORE PARADIGM SHIFT
             </span>
-            <span className="text-xs text-slate-400 font-mono">DRASHTI AI Engine v4.2</span>
+            <span className="text-xs text-slate-400 font-mono">DRISHTI AI Engine v4.2</span>
           </div>
           <h2 className="text-lg sm:text-xl font-extrabold text-white mt-1 tracking-tight flex items-center gap-2">
             <span>From Monitoring to Prediction</span>
@@ -92,14 +92,14 @@ export const USPBanner = () => {
             </div>
           </div>
 
-          {/* DRASHTI AI Workflow (Modern & Intelligent) */}
+          {/* DRISHTI AI Workflow (Modern & Intelligent) */}
           <div className="lg:col-span-8 p-4 rounded-xl bg-gov-900/90 border border-sky-500/30 ring-1 ring-sky-500/20 shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                    DRASHTI AI Intelligent Architecture
+                    DRISHTI AI Intelligent Architecture
                   </span>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">

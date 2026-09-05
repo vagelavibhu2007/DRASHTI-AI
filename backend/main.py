@@ -19,7 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
-logger = logging.getLogger("drashti.main")
+logger = logging.getLogger("drishti.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Backend Machine Learning & Prediction API for DRASHTI AI Infrastructure Intelligence Platform",
+    description="Backend Machine Learning & Prediction API for DRISHTI AI Infrastructure Intelligence Platform",
     version=settings.APP_VERSION,
     lifespan=lifespan
 )
@@ -56,7 +56,7 @@ app.include_router(alerts.router, prefix=settings.API_PREFIX)
 @app.get("/")
 def root():
     return {
-        "platform": "DRASHTI AI",
+        "platform": "DRISHTI AI",
         "tagline": "Don't Just Monitor Projects — Predict Their Risks.",
         "status": "Online",
         "version": settings.APP_VERSION,

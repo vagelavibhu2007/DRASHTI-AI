@@ -4,7 +4,7 @@ import logging
 import joblib
 from backend.config import settings
 
-logger = logging.getLogger("drashti.ml.loader")
+logger = logging.getLogger("drishti.ml.loader")
 
 class ModelLoader:
     _instance = None

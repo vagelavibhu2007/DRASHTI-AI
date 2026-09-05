@@ -24,7 +24,7 @@ export const AIAssistant = () => {
       id: 1,
       sender: 'assistant',
       time: 'Just now',
-      text: `Hello, I am **DRASHTI AI Copilot**, your infrastructure risk intelligence assistant. 
+      text: `Hello, I am **DRISHTI AI Copilot**, your infrastructure risk intelligence assistant. 
 
 I can help you identify high-risk assets, analyze SHAP root cause drivers, evaluate state-level bottlenecks, or answer questions about national project performance.
 
@@ -81,7 +81,7 @@ Choose one of the quick prompts below or type your question:`
       // General contextual response
       responseText = `### 🔍 Analysis for query: "${query}"
 
-Based on the DRASHTI AI repository of **1,966 active infrastructure projects**:
+Based on the DRISHTI AI repository of **1,966 active infrastructure projects**:
 
 - **Portfolio Health Status:** 410 Critical Risk Assets (Score ≥80), 640 High Risk Assets (Score 50–79.9).
 - **Core Recommendation:** Examine fund burn rates vs physical completion milestones.
@@ -149,7 +149,7 @@ Based on the DRASHTI AI repository of **1,966 active infrastructure projects**:
   return (
     <PageContainer
       breadcrumbs={[{ label: 'AI Copilot' }]}
-      title="DRASHTI AI Assistant"
+      title="DRISHTI AI Assistant"
       subtitle="Ask questions about projects, risks and infrastructure insights."
       action={
         <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ Based on the DRASHTI AI repository of **1,966 active infrastructure projects**:
                 <span className="w-1.5 h-1.5 rounded-full bg-gov-600 animate-bounce" />
                 <span className="w-1.5 h-1.5 rounded-full bg-gov-600 animate-bounce [animation-delay:0.2s]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-gov-600 animate-bounce [animation-delay:0.4s]" />
-                <span className="ml-1 font-semibold text-gov-800">DRASHTI AI is computing SHAP insights...</span>
+                <span className="ml-1 font-semibold text-gov-800">DRISHTI AI is computing SHAP insights...</span>
               </div>
             </div>
           )}
@@ -259,7 +259,7 @@ Based on the DRASHTI AI repository of **1,966 active infrastructure projects**:
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask DRASHTI AI about projects, delay probability, or SHAP contributions..."
+              placeholder="Ask DRISHTI AI about projects, delay probability, or SHAP contributions..."
               className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gov-700/20 focus:border-gov-700 transition"
             />
             <button

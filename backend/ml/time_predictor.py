@@ -3,7 +3,7 @@ import pandas as pd
 import logging
 from backend.ml.model_loader import model_loader
 
-logger = logging.getLogger("drashti.ml.time")
+logger = logging.getLogger("drishti.ml.time")
 
 class TimePredictor:
     def predict(self, df_features: pd.DataFrame) -> dict:

@@ -2,7 +2,7 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    APP_NAME: str = "DRASHTI AI - Infrastructure Risk Backend"
+    APP_NAME: str = "DRISHTI AI - Infrastructure Risk Backend"
     APP_VERSION: str = "4.2.0"
     API_PREFIX: str = "/api"
     

@@ -14,7 +14,7 @@ export const Projects = () => {
     <PageContainer
       breadcrumbs={[{ label: 'Projects Directory' }]}
       title="National Infrastructure Projects Repository"
-      subtitle="Complete database of 1,966 central sector infrastructure investments monitored via DRASHTI AI"
+      subtitle="Complete database of 1,966 central sector infrastructure investments monitored via DRISHTI AI"
       action={
         <div className="flex items-center gap-2">
           <button

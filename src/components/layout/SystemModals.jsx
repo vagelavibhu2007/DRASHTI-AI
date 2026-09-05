@@ -14,7 +14,7 @@ export const SettingsModal = () => {
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Sliders className="w-5 h-5 text-sky-400" />
-            <h3 className="text-base font-bold">DRASHTI AI Machine Learning Architecture</h3>
+            <h3 className="text-base font-bold">DRISHTI AI Machine Learning Architecture</h3>
           </div>
           <button
             onClick={() => setIsSettingsOpen(false)}
@@ -124,7 +124,7 @@ export const HelpModal = () => {
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Shield className="w-5 h-5 text-sky-400" />
-            <h3 className="text-base font-bold">DRASHTI AI Methodology & User Guide</h3>
+            <h3 className="text-base font-bold">DRISHTI AI Methodology & User Guide</h3>
           </div>
           <button
             onClick={() => setIsHelpOpen(false)}
@@ -140,7 +140,7 @@ export const HelpModal = () => {
             <h4 className="text-base font-bold text-slate-900 mb-1">Core Mission & Paradigm Shift</h4>
             <p className="text-slate-600 leading-relaxed text-xs sm:text-sm">
               Traditional infrastructure monitoring relies on lagging indicators (post-facto reports, manual inspections after deadlines lapse).
-              <strong> DRASHTI AI</strong> converts passive monitoring into <strong>Proactive Early Warning</strong> using predictive machine learning models that analyze leading variables (fund burn rate disparity, contractor execution velocity, seasonal weather risks, and right-of-way litigations).
+              <strong> DRISHTI AI</strong> converts passive monitoring into <strong>Proactive Early Warning</strong> using predictive machine learning models that analyze leading variables (fund burn rate disparity, contractor execution velocity, seasonal weather risks, and right-of-way litigations).
             </p>
           </div>
 

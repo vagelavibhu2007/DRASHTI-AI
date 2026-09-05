@@ -6,7 +6,7 @@ def calculate_overall_risk_score(cost_prob: float, time_prob: float) -> float:
 
 def calculate_risk_level(score: float) -> str:
     """
-    Standardized DRASHTI AI Risk Classification:
+    Standardized DRISHTI AI Risk Classification:
     0 <= score < 25    : LOW
     25 <= score < 50   : MEDIUM
     50 <= score < 80   : HIGH

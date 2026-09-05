@@ -4,7 +4,7 @@ import logging
 from backend.config import settings
 from backend.ml.model_loader import model_loader
 
-logger = logging.getLogger("drashti.ml.cost")
+logger = logging.getLogger("drishti.ml.cost")
 
 class CostPredictor:
     def __init__(self):

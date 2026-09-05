@@ -78,7 +78,7 @@ export const HighRiskProjects = () => {
               Critical Escalation Tier (410 National Assets)
             </h3>
             <p className="text-xs text-red-200 mt-0.5">
-              Identified by DRASHTI AI algorithm with &gt;80.0 combined cost and schedule hazard probability.
+              Identified by DRISHTI AI algorithm with &gt;80.0 combined cost and schedule hazard probability.
             </p>
           </div>
         </div>

@@ -10,7 +10,7 @@ from backend.ml.risk_engine import (
 )
 from backend.config import settings
 
-logger = logging.getLogger("drashti.ml.service")
+logger = logging.getLogger("drishti.ml.service")
 
 class PredictionService:
     def predict_single(self, project: ProjectInput) -> PredictionResponse:

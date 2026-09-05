@@ -372,7 +372,7 @@ export const WhatIfAnalysis = () => {
               <Info className="w-3.5 h-3.5 text-slate-400" />
               <span>Connected to live XGBoost & Random Forest ML pipelines.</span>
             </div>
-            <span className="font-mono font-bold text-gov-800">DRASHTI ML Engine v4.2</span>
+            <span className="font-mono font-bold text-gov-800">DRISHTI ML Engine v4.2</span>
           </div>
         </div>
       </div>

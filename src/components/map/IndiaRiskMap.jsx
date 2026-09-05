@@ -430,7 +430,7 @@ export const IndiaRiskMap = () => {
                     </Tooltip>
 
                     {/* Interactive Click Popup */}
-                    <Popup className="drashti-map-popup">
+                    <Popup className="drishti-map-popup">
                       <div className="p-3.5 bg-white text-slate-900 rounded-xl border border-slate-200 min-w-[240px] space-y-2">
                         <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-100">
                           <span className="font-mono text-[11px] font-bold text-gov-700 bg-gov-50 px-1.5 py-0.5 rounded border border-gov-200">

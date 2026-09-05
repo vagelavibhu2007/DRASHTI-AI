@@ -11,7 +11,7 @@ const apiClient = axios.create({
   },
 });
 
-// Centralized API Service for DRASHTI AI
+// Centralized API Service for DRISHTI AI
 export const api = {
   // 1. Prediction API
   predictRisk: async (projectData) => {

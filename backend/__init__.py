@@ -1,2 +1,2 @@
-# DRASHTI AI Backend
+# DRISHTI AI Backend
 
