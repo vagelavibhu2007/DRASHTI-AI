@@ -36,6 +36,21 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["*"]
 
+    # Authentication & Security Settings
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./backend/data/drishti_auth.db")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "drishti-ai-secure-secret-key-national-infra-2026-auth")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) # 24 hours
+    
+    # Storage paths
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
+    ID_PROOFS_DIR: str = os.getenv("ID_PROOFS_DIR", "uploads/id_proofs")
+    PROFILE_PHOTOS_DIR: str = os.getenv("PROFILE_PHOTOS_DIR", "uploads/profile_photos")
+    
+    # File limits
+    MAX_ID_PROOF_SIZE: int = 5 * 1024 * 1024  # 5 MB
+    MAX_PROFILE_PHOTO_SIZE: int = 2 * 1024 * 1024  # 2 MB
+
     class Config:
         env_file = ".env"
 

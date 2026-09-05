@@ -1,15 +1,26 @@
 from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
+from typing import Optional
 from backend.data.project_repository import project_repository
+from backend.models.user_model import User
+from backend.utils.dependencies import get_optional_current_user
 
 router = APIRouter(prefix="", tags=["Dashboard & Risk Analytics"])
 
 @router.get("/dashboard/summary")
 def get_dashboard_summary():
+def get_dashboard_summary(
+    state: Optional[str] = Query(None, description="Optional State filter"),
+    current_user: Optional[User] = Depends(get_optional_current_user)
+):
     """
     GET /api/dashboard/summary
     Aggregated portfolio metrics and KPI statistics computed from ML outputs.
     """
     return project_repository.get_kpi_summary()
+    if current_user and current_user.authority_type == "STATE_AUTHORITY" and current_user.state:
+        state = current_user.state
+    return project_repository.get_kpi_summary(state=state)
 
 @router.get("/risk/distribution")
 def get_risk_distribution():

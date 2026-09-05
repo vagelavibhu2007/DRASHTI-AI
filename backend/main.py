@@ -5,6 +5,7 @@ import logging
 
 from backend.config import settings
 from backend.ml.model_loader import model_loader
+from backend.db.database import init_db
 from backend.routers import (
     predict,
     projects,
@@ -13,6 +14,8 @@ from backend.routers import (
     explain,
     model_info,
     alerts
+    alerts,
+    auth
 )
 
 logging.basicConfig(
@@ -25,6 +28,9 @@ logger = logging.getLogger("drishti.main")
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"ML Execution Mode: {settings.ML_MODE.upper()}")
+    # Initialize SQLite Authentication Database & Tables
+    init_db()
+    logger.info("SQLite Authentication database initialized.")
     yield
     logger.info(f"Shutting down {settings.APP_NAME}")
 
@@ -45,6 +51,7 @@ app.add_middleware(
 )
 
 # Register API Routers
+app.include_router(auth.router, prefix=settings.API_PREFIX)
 app.include_router(predict.router, prefix=settings.API_PREFIX)
 app.include_router(projects.router, prefix=settings.API_PREFIX)
 app.include_router(dashboard.router, prefix=settings.API_PREFIX)

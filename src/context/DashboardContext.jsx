@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { DASHBOARD_STATS, MOCK_PROJECTS, EARLY_WARNING_ALERTS } from '../data/mockData';
+import { useAuth } from './AuthContext';
 
 const DashboardContext = createContext();
 
 export const DashboardProvider = ({ children }) => {
+  const { user, isStateAuthority, assignedState } = useAuth();
+
   // Application Data State
   const [stats, setStats] = useState(DASHBOARD_STATS);
   const [projects, setProjects] = useState(MOCK_PROJECTS);
@@ -17,7 +20,16 @@ export const DashboardProvider = ({ children }) => {
   const [selectedRiskFilter, setSelectedRiskFilter] = useState('ALL');
   const [selectedMinistryFilter, setSelectedMinistryFilter] = useState('ALL');
   const [selectedSectorFilter, setSelectedSectorFilter] = useState('ALL');
-  const [selectedStateFilter, setSelectedStateFilter] = useState('ALL');
+  const [selectedStateFilter, setSelectedStateFilter] = useState(() => {
+    return isStateAuthority && assignedState ? assignedState : 'ALL';
+  });
+
+  // Sync state filter when user authority changes
+  useEffect(() => {
+    if (isStateAuthority && assignedState) {
+      setSelectedStateFilter(assignedState);
+    }
+  }, [isStateAuthority, assignedState]);
 
   // Modals & Drawers
   const [drawerProjectId, setDrawerProjectId] = useState(null);
@@ -30,10 +42,15 @@ export const DashboardProvider = ({ children }) => {
     const fetchBackendData = async () => {
       setIsLoading(true);
       try {
+        const queryParams = {};
+        if (isStateAuthority && assignedState) {
+          queryParams.state = assignedState;
+        }
+
         const [summaryRes, projectsRes, alertsRes, modelRes] = await Promise.all([
-          api.getDashboardSummary(),
-          api.getProjects(),
-          api.getAlerts(),
+          api.getDashboardSummary(queryParams),
+          api.getProjects(queryParams),
+          api.getAlerts(queryParams),
           api.getModelInfo()
         ]);
 
@@ -57,7 +74,7 @@ export const DashboardProvider = ({ children }) => {
     };
 
     fetchBackendData();
-  }, []);
+  }, [isStateAuthority, assignedState]);
 
   // Filtered projects
   const filteredProjects = useMemo(() => {
@@ -92,7 +109,7 @@ export const DashboardProvider = ({ children }) => {
     setSelectedRiskFilter('ALL');
     setSelectedMinistryFilter('ALL');
     setSelectedSectorFilter('ALL');
-    setSelectedStateFilter('ALL');
+    setSelectedStateFilter(isStateAuthority && assignedState ? assignedState : 'ALL');
   };
 
   const updateAlertStatus = (alertId, newStatus) => {

@@ -1,8 +1,11 @@
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional
 from backend.data.project_repository import project_repository
 from backend.ml.explainer import shap_explainer
+from backend.models.user_model import User
+from backend.utils.dependencies import get_optional_current_user
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -16,12 +19,19 @@ def list_projects(
     sort_by: str = Query("overallRisk", description="Field to sort by"),
     sort_order: str = Query("desc", description="Sort order: asc or desc"),
     limit: Optional[int] = Query(None, description="Max number of items to return")
+    limit: Optional[int] = Query(None, description="Max number of items to return"),
+    current_user: Optional[User] = Depends(get_optional_current_user)
 ):
     """
     GET /api/projects
     Retrieves filtered and sorted infrastructure projects with ML risk scores.
+    If authenticated as a State Authority, enforces state filtering to user's assigned state.
     """
     try:
+        # Enforce State Authority RBAC filter
+        if current_user and current_user.authority_type == "STATE_AUTHORITY" and current_user.state:
+            state = current_user.state
+
         projects = project_repository.get_all(
             sort_by=sort_by,
             sort_order=sort_order,

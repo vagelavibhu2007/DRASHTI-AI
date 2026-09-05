@@ -577,7 +577,7 @@ License information will be added.
 ## Team & Maintainers
 
 - **Project Repository:** [https://github.com/vagelavibhu2007/DRISHTI-AI](https://github.com/vagelavibhu2007/DRISHTI-AI)
-- **Maintainer:** Vibhukumar Vagela ([@vagelavibhu2007](https://github.com/vagelavibhu2007))
+- **Maintainer:** Vibhukumar Vaghela ([@vagelavibhu2007](https://github.com/vagelavibhu2007))
 
 ---
 

@@ -9,7 +9,39 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000,
 });
+
+// Attach JWT token from localStorage to all outgoing requests
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('drishti_auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle session expiration
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expired or invalid
+      const isAuthPath = window.location.pathname.includes('/login') || 
+                         window.location.pathname.includes('/register') || 
+                         window.location.pathname.includes('/forgot-password');
+      if (!isAuthPath && localStorage.getItem('drishti_auth_token')) {
+        localStorage.removeItem('drishti_auth_token');
+        localStorage.removeItem('drishti_user');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Centralized API Service for DRISHTI AI
 export const api = {
@@ -189,6 +221,52 @@ export const api = {
       return { success: true, data: response.data.alerts, source: 'API' };
     } catch (error) {
       return { success: true, data: EARLY_WARNING_ALERTS, source: 'LOCAL' };
+    }
+  },
+
+  // 10. Authentication & User Services
+  auth: {
+    login: async (credentials) => {
+      const response = await apiClient.post('/auth/login', credentials);
+      return response.data;
+    },
+    register: async (formData) => {
+      // formData should be an instance of FormData
+      const response = await apiClient.post('/auth/register', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    },
+    getMe: async () => {
+      const response = await apiClient.get('/auth/me');
+      return response.data;
+    },
+    updateProfile: async (profileData) => {
+      const response = await apiClient.put('/auth/profile', profileData);
+      return response.data;
+    },
+    changePassword: async (passwordData) => {
+      const response = await apiClient.post('/auth/change-password', passwordData);
+      return response.data;
+    },
+    forgotPassword: async (email) => {
+      const response = await apiClient.post('/auth/forgot-password', { email });
+      return response.data;
+    },
+    resetPassword: async (resetData) => {
+      const response = await apiClient.post('/auth/reset-password', resetData);
+      return response.data;
+    },
+    getStates: async () => {
+      const response = await apiClient.get('/auth/states');
+      return response.data;
+    },
+    logout: async () => {
+      try {
+        await apiClient.post('/auth/logout');
+      } catch (e) {
+        // ignore
+      }
     }
   }
 };

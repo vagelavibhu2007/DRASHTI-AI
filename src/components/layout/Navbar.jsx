@@ -10,14 +10,23 @@ import {
   CheckCircle2,
   ExternalLink,
   Shield,
-  Layers
+  Layers,
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Building2,
+  MapPin
 } from 'lucide-react';
 import { useDashboard } from '../../context/DashboardContext';
+import { useAuth } from '../../context/AuthContext';
 import { RiskBadge } from '../common/RiskBadge';
 
 export const Navbar = () => {
-  const { stats, alerts, searchQuery, setSearchQuery } = useDashboard();
+  const { stats, alerts, searchQuery, setSearchQuery, setIsSettingsOpen } = useDashboard();
+  const { user, logout, isCentralAuthority, isStateAuthority } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
 
   const handleSearchSubmit = (e) => {
@@ -25,6 +34,12 @@ export const Navbar = () => {
     if (searchQuery.trim()) {
       navigate('/projects');
     }
+  };
+
+  const handleLogout = async () => {
+    setShowUserMenu(false);
+    await logout();
+    navigate('/login');
   };
 
   const unreadAlerts = alerts.filter((a) => a.status === 'New' || a.status === 'Under Review');
@@ -155,10 +170,118 @@ export const Navbar = () => {
             </>
           )}
         </div>
+
+        {/* User Profile Avatar Pill & Dropdown */}
+        {user && (
+          <div className="relative pl-1">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gov-700 text-white flex items-center justify-center font-bold text-xs shadow-sm overflow-hidden shrink-0">
+                {user.profile_photo_url ? (
+                  <img src={user.profile_photo_url} alt={user.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{user.first_name?.[0] || 'O'}{user.last_name?.[0] || 'I'}</span>
+                )}
+              </div>
+
+              <div className="hidden md:flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-900 leading-tight">{user.full_name}</span>
+                  <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold ${
+                    isCentralAuthority
+                      ? 'bg-sky-100 text-sky-800 border border-sky-200'
+                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                  }`}>
+                    {isCentralAuthority ? 'Central' : user.state || 'State'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500 leading-tight truncate max-w-[140px]">
+                  {user.position}
+                </span>
+              </div>
+
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {showUserMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowUserMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Dropdown Header */}
+                  <div className="p-4 bg-slate-900 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gov-700 text-white flex items-center justify-center font-bold text-sm shadow">
+                        {user.profile_photo_url ? (
+                          <img src={user.profile_photo_url} alt={user.full_name} className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                          <span>{user.first_name?.[0]}{user.last_name?.[0]}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold text-white truncate">{user.full_name}</h4>
+                        <p className="text-[11px] text-slate-400 font-mono">@{user.username}</p>
+                        <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded font-semibold ${
+                          isCentralAuthority
+                            ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {isCentralAuthority ? '🇮🇳 Central Authority' : `🏛️ State: ${user.state}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Links */}
+                  <div className="p-2 space-y-1 text-xs">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/profile');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium transition text-left"
+                    >
+                      <User className="w-4 h-4 text-gov-700" />
+                      <span>My Profile & Credentials</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setIsSettingsOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium transition text-left"
+                    >
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      <span>System Settings</span>
+                    </button>
+                  </div>
+
+                  {/* Sign Out Action */}
+                  <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold transition text-left text-xs"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
 };
 
 export default Navbar;
+
 
