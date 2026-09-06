@@ -1,5 +1,4 @@
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Query
 from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional
 from backend.data.project_repository import project_repository
@@ -18,7 +17,6 @@ def list_projects(
     search: Optional[str] = Query(None, description="Search term for ID, name, or state"),
     sort_by: str = Query("overallRisk", description="Field to sort by"),
     sort_order: str = Query("desc", description="Sort order: asc or desc"),
-    limit: Optional[int] = Query(None, description="Max number of items to return")
     limit: Optional[int] = Query(None, description="Max number of items to return"),
     current_user: Optional[User] = Depends(get_optional_current_user)
 ):

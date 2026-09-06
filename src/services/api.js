@@ -5,11 +5,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
-  },
-  timeout: 15000,
+  }
 });
 
 // Attach JWT token from localStorage to all outgoing requests
@@ -106,9 +105,9 @@ export const api = {
   },
 
   // 3. Dashboard KPI Summary
-  getDashboardSummary: async () => {
+  getDashboardSummary: async (params = {}) => {
     try {
-      const response = await apiClient.get('/dashboard/summary');
+      const response = await apiClient.get('/dashboard/summary', { params });
       return { success: true, data: response.data, source: 'API' };
     } catch (error) {
       console.warn('API dashboard/summary unreachable, using local store:', error.message);

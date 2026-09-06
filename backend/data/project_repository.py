@@ -1,6 +1,69 @@
+import re
 import pandas as pd
 from backend.schemas.project_schema import ProjectInput
 from backend.ml.predictor_service import prediction_service
+
+STANDARDIZED_STATES = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+    "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+    "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+]
+
+STATE_ALIASES = {
+    "delhi (nct)": "Delhi",
+    "nct of delhi": "Delhi",
+    "delhi nct": "Delhi",
+    "orissa": "Odisha",
+    "pondicherry": "Puducherry",
+    "uttaranchal": "Uttarakhand",
+    "daman and diu": "Dadra and Nagar Haveli and Daman and Diu",
+    "dadra & nagar haveli": "Dadra and Nagar Haveli and Daman and Diu"
+}
+
+def normalize_state_name(raw_name: str) -> str:
+    if not raw_name:
+        return ""
+    clean = raw_name.strip()
+    clean_lower = clean.lower()
+    if clean_lower in STATE_ALIASES:
+        return STATE_ALIASES[clean_lower]
+    for s in STANDARDIZED_STATES:
+        if s.lower() == clean_lower:
+            return s
+    return clean
+
+def extract_project_states(state_field: str) -> list[str]:
+    """
+    Extracts individual normalized state names from various multi-state formats:
+    'Maharashtra, Gujarat, Rajasthan'
+    'Delhi / Haryana / Punjab'
+    'Punjab & Rajasthan'
+    """
+    if not state_field:
+        return []
+    tokens = re.split(r'[,/;|]|\band\b|\b&\b', str(state_field), flags=re.IGNORECASE)
+    extracted = []
+    for t in tokens:
+        clean = t.strip()
+        if not clean:
+            continue
+        norm = normalize_state_name(clean)
+        if norm:
+            extracted.append(norm)
+    return list(dict.fromkeys(extracted))
+
+def project_matches_state(project_state_field: str, target_state: str) -> bool:
+    if not target_state or target_state == "ALL":
+        return True
+    if not project_state_field:
+        return False
+    norm_target = normalize_state_name(target_state).lower()
+    project_states = [s.lower() for s in extract_project_states(project_state_field)]
+    return norm_target in project_states
 
 class ProjectRepository:
     def __init__(self):
@@ -9,6 +72,7 @@ class ProjectRepository:
 
     def _initialize_projects(self):
         # 1. Core Specified Example Projects
+        # 1. Core Specified Example Projects & Multi-State Corridors
         seed_projects = [
             {
                 "projectId": "701410",
@@ -17,6 +81,8 @@ class ProjectRepository:
                 "sector": "Water Resources",
                 "state": "Punjab",
                 "district": "Ferozepur / Muktsar",
+                "state": "Punjab, Rajasthan",
+                "district": "Ferozepur / Muktsar / Sri Ganganagar",
                 "originalCost": 1976.4,
                 "cumulativeExpenditure": 1892.5,
                 "physicalProgress": 42.0,
@@ -62,6 +128,8 @@ class ProjectRepository:
                 "sector": "Petroleum & Gas",
                 "state": "West Bengal",
                 "district": "Purba Medinipur / Paschim Bardhaman",
+                "state": "West Bengal, Jharkhand",
+                "district": "Purba Medinipur / Paschim Bardhaman / Dhanbad",
                 "originalCost": 2850.0,
                 "cumulativeExpenditure": 2480.0,
                 "physicalProgress": 52.0,
@@ -77,6 +145,8 @@ class ProjectRepository:
                 "sector": "Road Transport",
                 "state": "Haryana",
                 "district": "Jhajjar / Rohtak / Jind",
+                "state": "Delhi, Haryana, Punjab, Jammu and Kashmir",
+                "district": "Jhajjar / Rohtak / Jind / Ludhiana",
                 "originalCost": 15400.0,
                 "cumulativeExpenditure": 12936.0,
                 "physicalProgress": 58.0,
@@ -84,6 +154,36 @@ class ProjectRepository:
                 "startDate": "15-Feb-2021",
                 "expectedCompletion": "31-Dec-2026",
                 "contractor": "NHAI / Dilip Buildcon & GR Infra"
+            },
+            {
+                "projectId": "619201",
+                "projectName": "Delhi–Mumbai Expressway Corridor",
+                "ministry": "Ministry of Road Transport & Highways",
+                "sector": "Road Transport",
+                "state": "Delhi, Haryana, Rajasthan, Gujarat, Maharashtra",
+                "district": "Gurugram / Jaipur / Vadodara / Thane",
+                "originalCost": 98000.0,
+                "cumulativeExpenditure": 84280.0,
+                "physicalProgress": 68.0,
+                "status": "Under Progress",
+                "startDate": "01-Mar-2019",
+                "expectedCompletion": "30-Jun-2026",
+                "contractor": "NHAI / L&T / GR Infra"
+            },
+            {
+                "projectId": "619305",
+                "projectName": "Western Dedicated Freight Corridor (DFC)",
+                "ministry": "Ministry of Railways",
+                "sector": "Railways",
+                "state": "Delhi, Haryana, Rajasthan, Gujarat, Maharashtra",
+                "district": "Rewari / Palanpur / JNPT Navi Mumbai",
+                "originalCost": 51100.0,
+                "cumulativeExpenditure": 46500.0,
+                "physicalProgress": 78.0,
+                "status": "Under Progress",
+                "startDate": "10-Oct-2016",
+                "expectedCompletion": "31-Dec-2026",
+                "contractor": "DFCCIL / Sojitz-L&T Consortium"
             }
         ]
 
@@ -217,6 +317,7 @@ class ProjectRepository:
             results = [p for p in results if p["sector"] == sector]
         if state and state != "ALL":
             results = [p for p in results if p["state"] == state]
+            results = [p for p in results if project_matches_state(p.get("state", ""), state)]
         if search and search.strip():
             q = search.strip().lower()
             results = [
@@ -251,6 +352,7 @@ class ProjectRepository:
         projects = self._projects_db
         if state and state != "ALL":
             projects = [p for p in self._projects_db if p["state"].lower() == state.lower()]
+            projects = [p for p in self._projects_db if project_matches_state(p.get("state", ""), state)]
 
         total = len(projects)
         if total == 0:
@@ -270,6 +372,8 @@ class ProjectRepository:
                 "totalActiveAlerts": 0,
                 "resolvedAlertsMonth": 0,
                 "aiConfidenceIndex": 95.0
+                "aiConfidenceIndex": 95.0,
+                "state": state
             }
 
         critical = sum(1 for p in projects if p["riskLevel"] == "CRITICAL")
@@ -302,6 +406,7 @@ class ProjectRepository:
                 "atRiskCapitalValueCr": at_risk_val,
                 "totalActiveAlerts": critical + (high // 2),
                 "resolvedAlertsMonth": medium // 2,
+                "resolvedAlertsMonth": max(1, medium // 2),
                 "aiConfidenceIndex": 94.6,
                 "state": state
             }
@@ -324,6 +429,8 @@ class ProjectRepository:
             "totalActiveAlerts": 84,
             "resolvedAlertsMonth": 28,
             "aiConfidenceIndex": 94.6
+            "aiConfidenceIndex": 94.6,
+            "state": None
         }
 
 project_repository = ProjectRepository()

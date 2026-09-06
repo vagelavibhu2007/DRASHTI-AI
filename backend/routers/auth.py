@@ -39,6 +39,15 @@ os.makedirs(settings.PROFILE_PHOTOS_DIR, exist_ok=True)
 ALLOWED_ID_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 ALLOWED_PHOTO_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
+@router.get("/states", response_model=list[str])
+def get_supported_states():
+    """
+    GET /api/auth/states
+    Returns the standardized list of Indian States and Union Territories for registration and filtering.
+    """
+    return INDIAN_STATES_AND_UTS
+
+
 @router.post("/register", response_model=RegistrationSuccessResponse)
 async def register_user(
     first_name: str = Form(..., description="First name"),

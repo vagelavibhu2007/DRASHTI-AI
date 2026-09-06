@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { DASHBOARD_STATS, MOCK_PROJECTS, EARLY_WARNING_ALERTS } from '../data/mockData';
+import { isProjectInState } from '../utils/riskUtils';
 import { useAuth } from './AuthContext';
 
 const DashboardContext = createContext();
@@ -28,6 +29,8 @@ export const DashboardProvider = ({ children }) => {
   useEffect(() => {
     if (isStateAuthority && assignedState) {
       setSelectedStateFilter(assignedState);
+    } else if (!isStateAuthority) {
+      setSelectedStateFilter('ALL');
     }
   }, [isStateAuthority, assignedState]);
 
@@ -76,7 +79,7 @@ export const DashboardProvider = ({ children }) => {
     fetchBackendData();
   }, [isStateAuthority, assignedState]);
 
-  // Filtered projects
+  // Filtered projects supporting multi-state projects
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
       if (selectedRiskFilter !== 'ALL' && p.riskLevel !== selectedRiskFilter) {
@@ -88,7 +91,7 @@ export const DashboardProvider = ({ children }) => {
       if (selectedSectorFilter !== 'ALL' && p.sector !== selectedSectorFilter) {
         return false;
       }
-      if (selectedStateFilter !== 'ALL' && p.state !== selectedStateFilter) {
+      if (selectedStateFilter !== 'ALL' && !isProjectInState(p, selectedStateFilter)) {
         return false;
       }
       if (searchQuery.trim()) {

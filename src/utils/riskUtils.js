@@ -124,3 +124,69 @@ export const calculateSimulatedRisk = ({
   };
 };
 
+/**
+ * Standardized Indian States & Union Territories
+ */
+export const STANDARDIZED_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
+
+const STATE_ALIASES = {
+  'delhi (nct)': 'Delhi',
+  'nct of delhi': 'Delhi',
+  'delhi nct': 'Delhi',
+  'orissa': 'Odisha',
+  'pondicherry': 'Puducherry',
+  'uttaranchal': 'Uttarakhand',
+  'daman and diu': 'Dadra and Nagar Haveli and Daman and Diu',
+  'dadra & nagar haveli': 'Dadra and Nagar Haveli and Daman and Diu'
+};
+
+export const normalizeStateName = (rawName) => {
+  if (!rawName) return '';
+  const clean = String(rawName).trim();
+  const lower = clean.toLowerCase();
+  if (STATE_ALIASES[lower]) return STATE_ALIASES[lower];
+  const matched = STANDARDIZED_STATES.find((s) => s.toLowerCase() === lower);
+  return matched || clean;
+};
+
+export const extractProjectStates = (stateField) => {
+  if (!stateField) return [];
+  if (Array.isArray(stateField)) {
+    return stateField.map(normalizeStateName).filter(Boolean);
+  }
+  const tokens = String(stateField).split(/[,/;|]|\band\b|\b&\b/i);
+  const states = [];
+  tokens.forEach((t) => {
+    const clean = t.trim();
+    if (clean) {
+      const norm = normalizeStateName(clean);
+      if (norm && !states.includes(norm)) {
+        states.push(norm);
+      }
+    }
+  });
+  return states;
+};
+
+export const isProjectInState = (projectOrState, targetState) => {
+  if (!targetState || targetState === 'ALL') return true;
+  const stateField = typeof projectOrState === 'object' && projectOrState !== null
+    ? (projectOrState.state || projectOrState.states)
+    : projectOrState;
+
+  if (!stateField) return false;
+  const normTarget = normalizeStateName(targetState).toLowerCase();
+  const projectStates = extractProjectStates(stateField).map((s) => s.toLowerCase());
+
+  return projectStates.includes(normTarget);
+};
+
+

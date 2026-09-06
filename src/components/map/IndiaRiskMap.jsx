@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, Tooltip, useMap 
 import indiaGeoData from '../../data/india_states_simplified.json';
 import { INDIA_STATE_PATHS } from '../../data/indiaMapPaths';
 import { STATE_RISK_DATA, MOCK_PROJECTS } from '../../data/mockData';
-import { getRiskLevel } from '../../utils/riskUtils';
+import { getRiskLevel, isProjectInState, extractProjectStates, normalizeStateName } from '../../utils/riskUtils';
 import { RiskBadge } from '../common/RiskBadge';
 import {
   MapPin,
@@ -17,6 +17,7 @@ import {
   Navigation
 } from 'lucide-react';
 import { useDashboard } from '../../context/DashboardContext';
+import { useAuth } from '../../context/AuthContext';
 
 // Helper component to smoothly animate map viewport on state selection
 const MapViewportController = ({ selectedState, stateStats }) => {
@@ -40,6 +41,7 @@ const MapViewportController = ({ selectedState, stateStats }) => {
 
 export const IndiaRiskMap = () => {
   const { setDrawerProjectId, projects: contextProjects } = useDashboard();
+  const { isStateAuthority, assignedState } = useAuth();
   const geoJsonRef = useRef(null);
 
   // Use context projects if available, otherwise MOCK_PROJECTS
@@ -47,11 +49,20 @@ export const IndiaRiskMap = () => {
     return contextProjects && contextProjects.length > 0 ? contextProjects : MOCK_PROJECTS;
   }, [contextProjects]);
 
-  const [selectedState, setSelectedState] = useState('ALL');
+  const [selectedState, setSelectedState] = useState(() => {
+    return isStateAuthority && assignedState ? assignedState : 'ALL';
+  });
   const [selectedSector, setSelectedSector] = useState('ALL');
   const [selectedRisk, setSelectedRisk] = useState('ALL');
   const [activeHoverState, setActiveHoverState] = useState(null);
   const [tileStyle, setTileStyle] = useState('osm'); // 'osm' or 'carto'
+
+  // Sync state filter when user authority changes
+  useEffect(() => {
+    if (isStateAuthority && assignedState) {
+      setSelectedState(assignedState);
+    }
+  }, [isStateAuthority, assignedState]);
 
   // Map state data aggregated from actual projects
   const stateStats = useMemo(() => {
@@ -82,15 +93,17 @@ export const IndiaRiskMap = () => {
     // Update with live projects if matches exist
     const stateProjectGroups = {};
     allProjects.forEach((p) => {
-      const pState = p.state || 'Maharashtra';
-      const matchedPath = INDIA_STATE_PATHS.find(
-        (s) =>
-          s.name.toLowerCase() === pState.toLowerCase() ||
-          pState.toLowerCase().includes(s.name.toLowerCase())
-      );
-      const stName = matchedPath ? matchedPath.name : pState;
-      if (!stateProjectGroups[stName]) stateProjectGroups[stName] = [];
-      stateProjectGroups[stName].push(p);
+      const pStates = extractProjectStates(p.state);
+      pStates.forEach((st) => {
+        const matchedPath = INDIA_STATE_PATHS.find(
+          (s) =>
+            s.name.toLowerCase() === st.toLowerCase() ||
+            normalizeStateName(s.name).toLowerCase() === normalizeStateName(st).toLowerCase()
+        );
+        const stName = matchedPath ? matchedPath.name : st;
+        if (!stateProjectGroups[stName]) stateProjectGroups[stName] = [];
+        stateProjectGroups[stName].push(p);
+      });
     });
 
     Object.keys(stateProjectGroups).forEach((stName) => {
@@ -127,12 +140,11 @@ export const IndiaRiskMap = () => {
     return statsMap;
   }, [allProjects]);
 
-  // Filtered projects for map markers
+  // Filtered projects for map markers using robust multi-state inclusion
   const filteredMapProjects = useMemo(() => {
     return allProjects.filter((p) => {
-      if (selectedState !== 'ALL') {
-        const matchesState = p.state && p.state.toLowerCase().includes(selectedState.toLowerCase());
-        if (!matchesState) return false;
+      if (selectedState !== 'ALL' && !isProjectInState(p, selectedState)) {
+        return false;
       }
       if (selectedSector !== 'ALL' && p.sector !== selectedSector) return false;
       if (selectedRisk !== 'ALL' && p.riskLevel !== selectedRisk) return false;
@@ -143,10 +155,12 @@ export const IndiaRiskMap = () => {
   // Project marker geographic coordinates [lat, lng]
   const projectMarkers = useMemo(() => {
     return filteredMapProjects.map((p, idx) => {
+      const pStates = extractProjectStates(p.state);
+      const primaryState = pStates[0] || p.state || 'Maharashtra';
       const stateObj = INDIA_STATE_PATHS.find(
         (s) =>
-          s.name.toLowerCase() === (p.state || '').toLowerCase() ||
-          (p.state || '').toLowerCase().includes(s.name.toLowerCase())
+          s.name.toLowerCase() === primaryState.toLowerCase() ||
+          normalizeStateName(s.name).toLowerCase() === normalizeStateName(primaryState).toLowerCase()
       );
 
       let lat, lng;
@@ -173,11 +187,12 @@ export const IndiaRiskMap = () => {
     });
   }, [filteredMapProjects]);
 
-  // Active state data for the side profile
+  // Active state data for the side profile (independent of project markers)
   const activeStateData = useMemo(() => {
-    const targetName = activeHoverState || (selectedState !== 'ALL' ? selectedState : 'Maharashtra');
-    return stateStats[targetName] || stateStats['Maharashtra'] || Object.values(stateStats)[0];
-  }, [activeHoverState, selectedState, stateStats]);
+    const defaultState = isStateAuthority && assignedState ? assignedState : 'Maharashtra';
+    const targetName = activeHoverState || (selectedState !== 'ALL' ? selectedState : defaultState);
+    return stateStats[targetName] || stateStats[defaultState] || Object.values(stateStats)[0];
+  }, [activeHoverState, selectedState, stateStats, isStateAuthority, assignedState]);
 
   // Choropleth style for state boundaries on light basemap
   const getStateStyle = (feature) => {
@@ -218,6 +233,7 @@ export const IndiaRiskMap = () => {
 
   const handleResetMap = () => {
     setSelectedState('ALL');
+    setSelectedState(isStateAuthority && assignedState ? assignedState : 'ALL');
     setSelectedRisk('ALL');
     setSelectedSector('ALL');
   };
@@ -424,14 +440,25 @@ export const IndiaRiskMap = () => {
                       }
                     }}
                   >
-                    {/* Hover Tooltip */}
+                    {/* Hover Tooltip - strictly bound to THIS project's record */}
                     <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      <span className="font-mono font-bold">#{p.projectId}</span> - {p.projectName}
+                      <div className="text-left font-sans text-xs min-w-[170px] p-0.5">
+                        <div className="font-mono font-bold text-slate-900">
+                          #{p.projectId}
+                        </div>
+                        <div className="text-xs font-semibold text-slate-800 line-clamp-1 mt-0.5">
+                          {p.projectName}
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between gap-2 border-t border-slate-200 pt-1">
+                          <span>State: <strong className="text-slate-800">{p.state}</strong></span>
+                          <span>Risk: <strong className="text-slate-900 font-mono">{Number(p.overallRisk).toFixed(1)}</strong></span>
+                        </div>
+                      </div>
                     </Tooltip>
 
-                    {/* Interactive Click Popup */}
+                    {/* Interactive Click Popup - strictly bound to THIS project's record */}
                     <Popup className="drishti-map-popup">
-                      <div className="p-3.5 bg-white text-slate-900 rounded-xl border border-slate-200 min-w-[240px] space-y-2">
+                      <div className="p-3.5 bg-white text-slate-900 rounded-xl border border-slate-200 min-w-[260px] space-y-2">
                         <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-100">
                           <span className="font-mono text-[11px] font-bold text-gov-700 bg-gov-50 px-1.5 py-0.5 rounded border border-gov-200">
                             #{p.projectId}
@@ -443,9 +470,10 @@ export const IndiaRiskMap = () => {
                           <h5 className="font-bold text-xs text-slate-900 leading-snug">
                             {p.projectName}
                           </h5>
-                          <span className="text-[10px] text-slate-500 block mt-0.5">
-                            {p.sector} • {p.state}
-                          </span>
+                          <div className="mt-1 space-y-0.5 text-[11px] text-slate-600">
+                            <div>State: <span className="font-bold text-slate-900">{p.state}</span></div>
+                            <div>Sector: <span className="font-medium text-slate-800">{p.sector}</span></div>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100">
@@ -598,9 +626,9 @@ export const IndiaRiskMap = () => {
                 <Building2 className="w-3.5 h-3.5 text-gov-700" />
                 Active Projects in View ({filteredMapProjects.length})
               </span>
-              {selectedState !== 'ALL' && (
+              {selectedState !== (isStateAuthority && assignedState ? assignedState : 'ALL') && (
                 <button
-                  onClick={() => setSelectedState('ALL')}
+                  onClick={() => setSelectedState(isStateAuthority && assignedState ? assignedState : 'ALL')}
                   className="text-xs text-gov-700 hover:text-gov-900 font-bold hover:underline"
                 >
                   Reset State Filter

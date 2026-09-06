@@ -13,7 +13,6 @@ from backend.routers import (
     risk,
     explain,
     model_info,
-    alerts
     alerts,
     auth
 )
@@ -37,8 +36,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     description="Backend Machine Learning & Prediction API for DRISHTI AI Infrastructure Intelligence Platform",
+    title="DRISHTI AI — Infrastructure Intelligence API",
+    description="Production-grade Machine Learning & Predictive Risk Analytics API for Infrastructure Assets across India. Exposes risk forecasting, SHAP explainability, authority RBAC, and spatial intelligence.",
     version=settings.APP_VERSION,
     lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # CORS configuration
@@ -61,6 +66,7 @@ app.include_router(model_info.router, prefix=settings.API_PREFIX)
 app.include_router(alerts.router, prefix=settings.API_PREFIX)
 
 @app.get("/")
+@app.get("/", tags=["System"])
 def root():
     return {
         "platform": "DRISHTI AI",
@@ -70,12 +76,23 @@ def root():
         "ml_mode": settings.ML_MODE,
         "cost_threshold": settings.COST_CLASSIFICATION_THRESHOLD,
         "docs_url": "/docs"
+        "docs_url": "/docs",
+        "redoc_url": "/redoc",
+        "openapi_url": "/openapi.json"
     }
 
 @app.get("/health")
+@app.get("/health", tags=["System"])
 def health_check():
+    """
+    GET /health
+    Basic service health check endpoint.
+    """
     return {
         "status": "healthy",
+        "status": "ok",
+        "service": "DRISHTI AI Backend",
+        "version": settings.APP_VERSION,
         "models_loaded": {
             "cost_classifier": model_loader.is_cost_classifier_ready,
             "time_classifier": model_loader.is_time_classifier_ready,
@@ -83,4 +100,5 @@ def health_check():
             "time_regressor": model_loader.time_regressor is not None
         }
     }
+
 

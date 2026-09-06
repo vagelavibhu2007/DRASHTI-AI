@@ -1,4 +1,3 @@
-from fastapi import APIRouter
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from backend.data.project_repository import project_repository
@@ -8,7 +7,6 @@ from backend.utils.dependencies import get_optional_current_user
 router = APIRouter(prefix="", tags=["Dashboard & Risk Analytics"])
 
 @router.get("/dashboard/summary")
-def get_dashboard_summary():
 def get_dashboard_summary(
     state: Optional[str] = Query(None, description="Optional State filter"),
     current_user: Optional[User] = Depends(get_optional_current_user)
@@ -17,25 +15,37 @@ def get_dashboard_summary(
     GET /api/dashboard/summary
     Aggregated portfolio metrics and KPI statistics computed from ML outputs.
     """
-    return project_repository.get_kpi_summary()
     if current_user and current_user.authority_type == "STATE_AUTHORITY" and current_user.state:
         state = current_user.state
     return project_repository.get_kpi_summary(state=state)
 
 @router.get("/risk/distribution")
-def get_risk_distribution():
+def get_risk_distribution(
+    state: Optional[str] = Query(None, description="Optional State filter"),
+    current_user: Optional[User] = Depends(get_optional_current_user)
+):
     """
     GET /api/risk/distribution
     Portfolio risk level breakdown for Donut Chart.
     """
-    summary = project_repository.get_kpi_summary()
+    if current_user and current_user.authority_type == "STATE_AUTHORITY" and current_user.state:
+        state = current_user.state
+
+    summary = project_repository.get_kpi_summary(state=state)
+    total_proj = summary["criticalProjects"] + summary["highRisk"] + summary["mediumRisk"] + summary["lowRisk"]
+    crit_pct = f"{round((summary['criticalProjects'] / (total_proj or 1)) * 100, 1)}%"
+    high_pct = f"{round((summary['highRisk'] / (total_proj or 1)) * 100, 1)}%"
+    med_pct = f"{round((summary['mediumRisk'] / (total_proj or 1)) * 100, 1)}%"
+    low_pct = f"{round((summary['lowRisk'] / (total_proj or 1)) * 100, 1)}%"
+
     return {
         "distribution": [
-            {"name": "Critical", "value": summary["criticalProjects"], "color": "#EF4444", "level": "CRITICAL", "percentage": "20.9%"},
-            {"name": "High", "value": summary["highRisk"], "color": "#F97316", "level": "HIGH", "percentage": "32.6%"},
-            {"name": "Medium", "value": summary["mediumRisk"], "color": "#F59E0B", "level": "MEDIUM", "percentage": "30.3%"},
-            {"name": "Low", "value": summary["lowRisk"], "color": "#10B981", "level": "LOW", "percentage": "16.3%"}
+            {"name": "Critical", "value": summary["criticalProjects"], "color": "#EF4444", "level": "CRITICAL", "percentage": crit_pct},
+            {"name": "High", "value": summary["highRisk"], "color": "#F97316", "level": "HIGH", "percentage": high_pct},
+            {"name": "Medium", "value": summary["mediumRisk"], "color": "#F59E0B", "level": "MEDIUM", "percentage": med_pct},
+            {"name": "Low", "value": summary["lowRisk"], "color": "#10B981", "level": "LOW", "percentage": low_pct}
         ],
+
         "costRiskDistribution": [
             {"range": "0-20%", "count": 240, "label": "Minimal (0-20%)"},
             {"range": "21-40%", "count": 380, "label": "Low (21-40%)"},
